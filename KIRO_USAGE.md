@@ -43,3 +43,5 @@ Kiroween 2026 requires a write-up of Kiro usage. This file is updated as the bui
 ## Readable what-if diff cards (fix/viewer-diff-cards)
 - One Kiro CLI session (no throttling) added a pure, tested `viewer/src/formatDiffCard.ts` (23 tests): haunted-npc cards show rule, mood, trust change and the dialogue line (original crossed out -> scenario); short-let cards show rule, price and multiplier; unknown agents get a compact summary. A native `<details>` "Raw data" toggle keeps the full JSON, and CSS wrapping prevents overflow at 1024x1366 and 1366x1024.
 - Hand edits: none to the code. Only this file was updated by hand. Screenshots were taken with a headless Chrome script outside Kiro.
+
+- **Viewer badge step number (fix/viewer-broken-step-number):** Kiro CLI made the whole code change: `getBadgeState` now shows `brokenAt + 1` so the "Chain broken at step N" badge matches the 1-based timeline (core `verifyChain` stays 0-based), updated two unit tests that encoded the old numbering, and added `viewer/test/chainBreakBadge.test.ts` (tampered NPC trace regression). No throttles. Hand edits: this KIRO_USAGE.md entry only.

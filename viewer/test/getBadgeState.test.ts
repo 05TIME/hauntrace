@@ -43,8 +43,10 @@ describe("getBadgeState", () => {
     expect(state.label).toBe("Chain broken");
   });
 
-  it("includes step number in label when brokenAt is provided", () => {
-    const state = getBadgeState({ ok: false, brokenAt: 3 });
+  it("includes 1-based step number in label when brokenAt is provided", () => {
+    // brokenAt is 0-based from the engine; the badge must display it as 1-based
+    // so that it matches the timeline labels (step 0 → "step 1", etc.)
+    const state = getBadgeState({ ok: false, brokenAt: 2 });
     expect(state.label).toBe("Chain broken at step 3");
   });
 
@@ -54,7 +56,8 @@ describe("getBadgeState", () => {
   });
 
   it("includes both brokenAt and reason in label", () => {
-    const state = getBadgeState({ ok: false, brokenAt: 7, reason: "hash mismatch" });
+    // brokenAt 6 (0-based) → "step 7" (1-based, matching timeline)
+    const state = getBadgeState({ ok: false, brokenAt: 6, reason: "hash mismatch" });
     expect(state.label).toBe("Chain broken at step 7: hash mismatch");
   });
 
