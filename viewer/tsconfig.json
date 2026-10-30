@@ -9,7 +9,7 @@
     "skipLibCheck": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "outDir": "dist",
-    "rootDir": ".",
+    "rootDir": "..",
     "types": []
   },
   "include": ["src/**/*", "test/**/*", "vite.config.ts"]
