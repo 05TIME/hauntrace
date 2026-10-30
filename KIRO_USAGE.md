@@ -10,9 +10,12 @@ Kiroween 2026 requires a write-up of Kiro usage. This file is updated as the bui
 ## Honest provenance
 
 - **Initial scaffold (PR #1):** written outside Kiro by an AI assistant, following the plan and the `.kiro` steering/specs above. Spec tasks 1-5 and the shortlet demo came from that scaffold, not from Kiro.
-- **Core task 6, trace export/import (this PR):** implemented by **Kiro CLI 2.36.0** (free plan) in one non-interactive, spec-driven session run from the repo root, so Kiro loaded the `.kiro` steering and specs:
+- **Core task 6, trace export/import (PR #2):** implemented by **Kiro CLI 2.36.0** (free plan) in one non-interactive, spec-driven session run from the repo root, so Kiro loaded the `.kiro` steering and specs:
   `kiro-cli chat --no-interactive --trust-all-tools --trust-workspace "Implement task 6 in .kiro/specs/core-engine/tasks.md ..."`
   Kiro read the spec and code, created `packages/core/src/io.ts` (`TRACE_SCHEMA_VERSION`, `exportTrace`, `importTrace`, `TraceImportError`) and `packages/core/test/io.test.ts` (24 tests: round-trip with replay/verify, a property test, and validation failures), exported it from `index.ts`, ran typecheck and tests, and ticked task 6 in `tasks.md`.
+  Hand edits: none to the code. Only this file was updated by hand.
+
+- **Core task 7, HTTP adapter (this PR):** implemented by Kiro CLI (free plan) in one non-interactive, spec-driven session (`"Implement task 7 in .kiro/specs/core-engine/tasks.md ..."`). Kiro created `packages/core/src/http.ts` (`createAgentServer`, `node:http` only, `POST /run` returning trace + replay verification and optional what-if ghost diffs; 400/404/405 errors), `apps/shortlet-pricing/src/server.ts` (`createShortletServer`), and tests (`packages/core/test/http.test.ts`, `apps/shortlet-pricing/test/server.test.ts`, 35 tests bound to 127.0.0.1 on an ephemeral port). It fixed its own typecheck error, ran typecheck/tests/build, and ticked task 7.
   Hand edits: none to the code. Only this file was updated by hand.
 
 ## Next
