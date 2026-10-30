@@ -7,5 +7,5 @@
 - [x] 5. `verifyChain`, `replay`, `whatIf` + unit and property tests (req 5–7)
 - [x] 6. Trace export/import as JSON file with schema version
 - [x] 7. HTTP adapter (validated request => decision + ghost)
-- [ ] 8. LLM tool adapter: LLM proposes an action, agent rules decide and explain
+- [x] 8. LLM tool adapter: LLM proposes an action, agent rules decide and explain
 - [ ] 9. "Séance" trace viewer: timeline scrubber, replay badge, ghost diff overlay
