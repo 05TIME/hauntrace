@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "trace": {
+    "agent": "haunted-npc",
+    "agentVersion": "0.1.0",
+    "rulesetHash": "67c670d83a88eb14049bcf062d42d050961233e21221a15e7d80017af119bbdc",
+    "options": {
+      "seed": 13,
+      "startMs": 1793404800000,
+      "stepMs": 60000
+    },
+    "ghosts": [
+      {
+        "step": 0,
+        "timeMs": 1793404800000,
+        "obs": {
+          "beat": "inn-door",
+          "playerTrust": 15,
+          "hasLantern": false,
+          "hasRelicKey": false,
+          "hourOfNight": 21
+        },
+        "stateBefore": {
+          "mood": "neutral",
+          "trustDelta": 0,
+          "beatsPlayed": 0
+        },
+        "ruleId": "low-trust",
+        "reason": "playerTrust=15 (\u226420) and mood=neutral: warning issued",
+        "action": {
+          "dialogue": "I don't know your face, and I don't trust what I don't know. State your business.",
+          "moodAfter": "wary",
+          "trustChange": -5
+        },
+        "stateAfter": {
+          "mood": "wary",
+          "trustDelta": -5,
+          "beatsPlayed": 1
+        },
+        "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "hash": "f9eaec71c6f6bba58c14cb6550e3fb74c91e4bbbffab7a3b68afd0df206ac983"
+      },
+      {
+        "step": 1,
+        "timeMs": 1793404860000,
+        "obs": {
+          "beat": "inn-lobby",
+          "playerTrust": 10,
+          "hasLantern": true,
+          "hasRelicKey": false,
+          "hourOfNight": 21,
+          "playerAction": "offer-lantern"
+        },
+        "stateBefore": {
+          "mood": "wary",
+          "trustDelta": -5,
+          "beatsPlayed": 1
+        },
+        "ruleId": "lantern-gift",
+        "reason": "Player offered lantern while mood=wary: warmth granted",
+        "action": {
+          "dialogue": "A lantern\u2026 the old flame-kind. You ease my chill, stranger. Come in, come in.",
+          "moodAfter": "warm",
+          "trustChange": 15
+        },
+        "stateAfter": {
+          "mood": "warm",
+          "trustDelta": 10,
+          "beatsPlayed": 2
+        },
+        "prevHash": "f9eaec71c6f6bba58c14cb6550e3fb74c91e4bbbffab7a3b68afd0df206ac983",
+        "hash": "2d183fed85e75d155b58ac4761d3d0807896df74bc70d06d9ba321f3bbdc1130"
+      },
+      {
+        "step": 2,
+        "timeMs": 1793404920000,
+        "obs": {
+          "beat": "corridor",
+          "playerTrust": 25,
+          "hasLantern": true,
+          "hasRelicKey": false,
+          "hourOfNight": 1
+        },
+        "stateBefore": {
+          "mood": "warm",
+          "trustDelta": 10,
+          "beatsPlayed": 2
+        },
+        "ruleId": "midnight-dread",
+        "reason": "Hour=1 (0\u20133) while mood=warm: midnight dread takes hold",
+        "action": {
+          "dialogue": "The\u2026 the veil thins now. Do you hear them? The ones who checked in and never checked out\u2026",
+          "moodAfter": "haunted",
+          "trustChange": 0
+        },
+        "stateAfter": {
+          "mood": "haunted",
+          "trustDelta": 10,
+          "beatsPlayed": 3
+        },
+        "prevHash": "2d183fed85e75d155b58ac4761d3d0807896df74bc70d06d9ba321f3bbdc1130",
+        "hash": "3b68fe305ed07d4f8e9c2ab5f51382f578b81ea4d3843fad2d04c6153e346dc2"
+      },
+      {
+        "step": 3,
+        "timeMs": 1793404980000,
+        "obs": {
+          "beat": "taproom",
+          "playerTrust": 45,
+          "hasLantern": true,
+          "hasRelicKey": false,
+          "hourOfNight": 4
+        },
+        "stateBefore": {
+          "mood": "haunted",
+          "trustDelta": 10,
+          "beatsPlayed": 3
+        },
+        "ruleId": "fallback",
+        "reason": "No rule fired: seeded random dialogue (idx=2)",
+        "action": {
+          "dialogue": "The candles flicker when you speak. Curious.",
+          "moodAfter": "haunted",
+          "trustChange": 0
+        },
+        "stateAfter": {
+          "mood": "haunted",
+          "trustDelta": 10,
+          "beatsPlayed": 4
+        },
+        "prevHash": "3b68fe305ed07d4f8e9c2ab5f51382f578b81ea4d3843fad2d04c6153e346dc2",
+        "hash": "0a375af30fc0a8c62638eacb488de13d32fd66a0346485659188e588336e61ff"
+      },
+      {
+        "step": 4,
+        "timeMs": 1793405040000,
+        "obs": {
+          "beat": "upper-hall",
+          "playerTrust": 75,
+          "hasLantern": true,
+          "hasRelicKey": false,
+          "hourOfNight": 22
+        },
+        "stateBefore": {
+          "mood": "haunted",
+          "trustDelta": 10,
+          "beatsPlayed": 4
+        },
+        "ruleId": "high-trust",
+        "reason": "playerTrust=75 (\u226570): secret shared",
+        "action": {
+          "dialogue": "Since you've proven yourself\u2026 there is a passage behind the portrait. Use it wisely.",
+          "moodAfter": "warm",
+          "trustChange": 5
+        },
+        "stateAfter": {
+          "mood": "warm",
+          "trustDelta": 15,
+          "beatsPlayed": 5
+        },
+        "prevHash": "0a375af30fc0a8c62638eacb488de13d32fd66a0346485659188e588336e61ff",
+        "hash": "97f845631c69583371af9f9d57704c807ad09496c25b4d8a86f43903e9933615"
+      },
+      {
+        "step": 5,
+        "timeMs": 1793405100000,
+        "obs": {
+          "beat": "vault-door",
+          "playerTrust": 10,
+          "hasLantern": false,
+          "hasRelicKey": true,
+          "hourOfNight": 23
+        },
+        "stateBefore": {
+          "mood": "warm",
+          "trustDelta": 15,
+          "beatsPlayed": 5
+        },
+        "ruleId": "betray",
+        "reason": "Player holds relic key with trust=10 (<20): betrayal detected",
+        "action": {
+          "dialogue": "You dare return here with what you stole? The door is shut to you, thief. LEAVE.",
+          "moodAfter": "hostile",
+          "trustChange": -30
+        },
+        "stateAfter": {
+          "mood": "hostile",
+          "trustDelta": -15,
+          "beatsPlayed": 6
+        },
+        "prevHash": "97f845631c69583371af9f9d57704c807ad09496c25b4d8a86f43903e9933615",
+        "hash": "5b648292043d497fea5f23da2dc227aa5a34c93d380c0af511b105ab1bc37926"
+      }
+    ],
+    "headHash": "5b648292043d497fea5f23da2dc227aa5a34c93d380c0af511b105ab1bc37926"
+  }
+}
