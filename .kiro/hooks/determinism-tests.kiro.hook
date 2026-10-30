@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "name": "Determinism tests on save",
+  "description": "When core or app source changes, run the test suite and report any determinism, replay or what-if failures.",
+  "version": "1",
+  "when": { "type": "fileEdited", "patterns": ["packages/**/*.ts", "apps/**/*.ts"] },
+  "then": { "type": "askAgent", "prompt": "Run `npm test`. If any test fails, explain which determinism rule from .kiro/steering/tech.md was broken and propose a fix." }
+}

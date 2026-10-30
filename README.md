@@ -12,3 +12,34 @@ Built for the Kiroween 2026 hackathon (Skeleton Crew category) using Kiro.
 See `.kiro/` for specs, steering and hooks.
 
 License: MIT
+
+## Quickstart
+
+```bash
+npm install
+npm test          # unit + property-based tests
+npm run demo:shortlet
+```
+
+## Layout
+
+- `packages/core`: the skeleton (`run`, `verifyChain`, `replay`, `whatIf`, seeded `Rng`, injected `Clock`)
+- `apps/shortlet-pricing`: demo app 1, nightly pricing on EXAMPLE data
+- `apps/<app-2>`: demo app 2 (coming)
+- `.kiro/`: Kiro steering, specs and hooks
+- `docs/ci/ci.yml`: CI workflow template
+
+## Define an agent
+
+```ts
+const agent: AgentDefinition<State, Obs, Action> = {
+  name: "my-agent", version: "1", initialState,
+  rules: [{ id: "big", description: "n >= 10",
+    evaluate: ({ obs }) => obs.n >= 10 ? { action: "alert", reason: `n=${obs.n}` } : null }],
+  fallback: () => ({ action: "ignore", reason: "nothing matched" }),
+  reduce: (s) => s,
+};
+const trace = run(agent, observations, { seed: 1, startMs: 0, stepMs: 1000 });
+replay(agent, trace).ok; // true
+whatIf(agent, trace, (o) => ({ ...o, n: o.n + 5 })).diffs;
+```
