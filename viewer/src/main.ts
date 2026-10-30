@@ -26,6 +26,7 @@ import exampleTraceRaw from "./example-trace.json";
 import exampleTraceNpcRaw from "./example-trace-npc.json";
 import type { TraceFile } from "./types.js";
 import { formatAction } from "./formatAction.js";
+import { formatDiffCard } from "./formatDiffCard.js";
 
 // ── DOM element helpers ──────────────────────────────────────
 function el<T extends HTMLElement>(id: string): T {
@@ -338,24 +339,57 @@ function renderWhatIf(): void {
   }
 
   const diffRows = diffs.map((diff) => {
-    const orig = state!.trace.ghosts[diff.step];
-    const beforeObs = orig ? JSON.stringify(orig.obs) : "";
+    const origGhost = state!.trace.ghosts[diff.step];
     const altGhost = altTrace.ghosts[diff.step];
-    const afterObs = altGhost ? JSON.stringify(altGhost.obs) : "";
+    if (!origGhost || !altGhost) return "";
+
+    const card = formatDiffCard(state!.trace.agent, diff, origGhost, altGhost);
+
+    const fieldRows = card.fields
+      .map((f) => {
+        const origCell = f.changed
+          ? `<span class="diff-orig diff-orig--crossed">${escHtml(f.original)}</span>`
+          : `<span class="diff-orig">${escHtml(f.original)}</span>`;
+        const altCell = `<span class="diff-scenario${f.changed ? " diff-scenario--highlight" : ""}">${escHtml(f.scenario)}</span>`;
+        return `
+          <div class="diff-field">
+            <span class="diff-field-label">${escHtml(f.label)}</span>
+            <span class="diff-field-values">
+              ${origCell}
+              ${f.changed ? '<span class="diff-arrow" aria-hidden="true">→</span>' : ""}
+              ${f.changed ? altCell : ""}
+            </span>
+          </div>`;
+      })
+      .join("");
+
     return `
       <div class="whatif-diff-row">
-        <div class="whatif-diff-step">Step ${diff.step + 1}</div>
-        <div class="whatif-diff-before">
-          <span>Rule:</span> ${diff.before.ruleId} &nbsp;·&nbsp; <span>Action:</span> ${JSON.stringify(diff.before.action)}<br>
-          <span>obs:</span> ${beforeObs}
-        </div>
-        <div class="whatif-diff-arrow">↓ scenario → changed decision ↓</div>
-        <div class="whatif-diff-after">
-          <span>Rule:</span> ${diff.after.ruleId} &nbsp;·&nbsp; <span>Action:</span> ${JSON.stringify(diff.after.action)}<br>
-          <span>obs:</span> ${afterObs}
-        </div>
-      </div>
-    `;
+        <div class="whatif-diff-step">Step ${card.step + 1}</div>
+        <div class="whatif-diff-title">${escHtml(card.title)}</div>
+        <div class="diff-fields">${fieldRows}</div>
+        <details class="diff-raw">
+          <summary class="diff-raw-toggle">Raw data</summary>
+          <div class="diff-raw-grid">
+            <div class="diff-raw-block">
+              <div class="diff-raw-label">Original obs</div>
+              <pre class="diff-raw-pre">${escHtml(card.rawOrigObs)}</pre>
+            </div>
+            <div class="diff-raw-block">
+              <div class="diff-raw-label">Scenario obs</div>
+              <pre class="diff-raw-pre">${escHtml(card.rawAltObs)}</pre>
+            </div>
+            <div class="diff-raw-block">
+              <div class="diff-raw-label">Original action</div>
+              <pre class="diff-raw-pre">${escHtml(card.rawOrigAction)}</pre>
+            </div>
+            <div class="diff-raw-block">
+              <div class="diff-raw-label">Scenario action</div>
+              <pre class="diff-raw-pre">${escHtml(card.rawAltAction)}</pre>
+            </div>
+          </div>
+        </details>
+      </div>`;
   });
 
   overlay.innerHTML = `
@@ -366,6 +400,15 @@ function renderWhatIf(): void {
   `;
 
   renderTimeline(state.trace, state.scrubber.currentStep, changedSteps);
+}
+
+/** Minimal HTML escaping to prevent XSS from trace content. */
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // ── Compute changed steps for current scenario ───────────────
