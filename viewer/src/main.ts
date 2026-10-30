@@ -20,6 +20,8 @@ import {
   VERIFYING_BADGE,
   type BadgeState,
 } from "./getBadgeState.js";
+import { getScenariosForAgent, hasScenarios } from "./scenarioRegistry.js";
+import { rerunAltTrace } from "./agentRunner.js";
 import exampleTraceRaw from "./example-trace.json";
 import exampleTraceNpcRaw from "./example-trace-npc.json";
 import type { TraceFile } from "./types.js";
@@ -75,8 +77,48 @@ function actionDate(action: unknown): string {
   return "";
 }
 
+// ── Rebuild what-if scenario dropdown ───────────────────────
+function rebuildWhatIfDropdown(agentId: string, preselect?: string): void {
+  const select = el<HTMLSelectElement>("whatif-select");
+  const noScenariosMsg = el("whatif-no-scenarios");
+
+  // Clear existing options
+  select.innerHTML = "";
+
+  const scenarios = getScenariosForAgent(agentId);
+
+  if (scenarios.length === 0) {
+    select.hidden = true;
+    noScenariosMsg.hidden = false;
+    noScenariosMsg.textContent = "No what-if scenarios for this agent.";
+    if (state) state.whatIfScenario = "none";
+    return;
+  }
+
+  select.hidden = false;
+  noScenariosMsg.hidden = true;
+
+  // "none" option
+  const noneOpt = document.createElement("option");
+  noneOpt.value = "none";
+  noneOpt.textContent = "— none (show original) —";
+  select.appendChild(noneOpt);
+
+  for (const scenario of scenarios) {
+    const opt = document.createElement("option");
+    opt.value = scenario.id;
+    opt.textContent = scenario.label;
+    select.appendChild(opt);
+  }
+
+  // Apply preselected value if valid
+  const validId = preselect && scenarios.some((s) => s.id === preselect) ? preselect : "none";
+  select.value = validId;
+  if (state) state.whatIfScenario = validId;
+}
+
 // ── Load trace ───────────────────────────────────────────────
-async function loadTrace(json: string): Promise<void> {
+async function loadTrace(json: string, preselectScenario?: string): Promise<void> {
   const dropZone = el("drop-zone");
   const viewer = el("viewer");
   const errBox = el("drop-error");
@@ -105,9 +147,20 @@ async function loadTrace(json: string): Promise<void> {
   viewer.hidden = false;
 
   renderMeta(trace);
+
+  // Rebuild dropdown for the loaded agent, optionally preselecting a scenario
+  rebuildWhatIfDropdown(trace.agent, preselectScenario);
+
   renderTimeline(trace, 0, new Set());
   renderScrubber(trace, 0);
   renderStepDetail(0);
+
+  // If a scenario was preselected, render what-if immediately
+  if (state.whatIfScenario !== "none") {
+    renderWhatIf();
+  } else {
+    renderWhatIf(); // always render to clear/reset overlay
+  }
 
   // Verify chain asynchronously
   renderBadge(VERIFYING_BADGE);
@@ -220,6 +273,39 @@ function renderStepDetail(step: number): void {
   `;
 }
 
+// ── Build alt-trace by patching obs AND re-running agent rules ────────────────
+//
+// The original code only patched obs in each ghost but left ruleId/action/reason
+// unchanged, so computeWhatIfDiffs always saw identical decisions (no changes).
+//
+// The fix: for known agents (haunted-npc, shortlet-pricing) we use rerunAltTrace
+// to re-evaluate the agent's rules from scratch over the patched observations,
+// starting from the trace's initial state and seed, so every ghost in the alt
+// trace reflects what the agent would actually have decided.
+function buildAltTrace(s: AppState): Trace {
+  const scenarios = getScenariosForAgent(s.trace.agent);
+  const scenario = scenarios.find((sc) => sc.id === s.whatIfScenario);
+
+  if (!scenario) return s.trace;
+
+  // Build patched observations from each ghost's obs
+  const patchedObs = s.trace.ghosts.map((g) =>
+    scenario.patchObs(g.obs as Record<string, unknown>),
+  );
+
+  // Re-run the real agent rules over the patched observations so ruleId/action
+  // reflect the actual counterfactual decisions (not just the original ones).
+  const rerun = rerunAltTrace(s.trace.agent, s.trace, patchedObs);
+  if (rerun) return rerun;
+
+  // Fallback for unknown agents: patch obs only (no rule re-evaluation)
+  const altGhosts = s.trace.ghosts.map((g, i) => ({
+    ...g,
+    obs: patchedObs[i] ?? g.obs,
+  }));
+  return { ...s.trace, ghosts: altGhosts };
+}
+
 // ── Render what-if overlay ───────────────────────────────────
 function renderWhatIf(): void {
   if (!state) return;
@@ -229,81 +315,65 @@ function renderWhatIf(): void {
   if (scenario === "none") {
     overlay.innerHTML =
       '<p class="whatif-empty">Choose a scenario above to see how decisions would change.</p>';
-    // Re-render timeline without changed markers
     renderTimeline(state.trace, state.scrubber.currentStep, new Set());
     return;
   }
 
-  // Build alternative trace by patching observations
-  const altGhosts = state.trace.ghosts.map((g) => {
-    const obs = g.obs as Record<string, unknown>;
-    let patched = { ...obs };
-    if (scenario === "occupancy+20") {
-      const cur = typeof obs["areaOccupancyPct"] === "number" ? obs["areaOccupancyPct"] : 0;
-      patched = { ...obs, areaOccupancyPct: Math.min(100, cur + 20) };
-    } else if (scenario === "occupancy-20") {
-      const cur = typeof obs["areaOccupancyPct"] === "number" ? obs["areaOccupancyPct"] : 0;
-      patched = { ...obs, areaOccupancyPct: Math.max(0, cur - 20) };
-    } else if (scenario === "no-events") {
-      patched = { ...obs, localEvent: null };
-    } else if (scenario === "all-weekend") {
-      patched = { ...obs, isWeekend: true };
-    }
-    return { ...g, obs: patched };
-  });
+  const scenarios = getScenariosForAgent(state.trace.agent);
+  if (scenarios.length === 0) {
+    overlay.innerHTML =
+      '<p class="whatif-empty">No what-if scenarios for this agent.</p>';
+    renderTimeline(state.trace, state.scrubber.currentStep, new Set());
+    return;
+  }
 
-  // We don't re-run the full engine in the browser (no agent code here),
-  // so we produce a "simulated" alt trace by showing what observations changed.
-  // For real what-if, the viewer uses the diff against observation changes only.
-  // Mark which steps have changed observations vs original.
-  const changedSteps = new Set<number>();
-  const diffRows: string[] = [];
+  const altTrace = buildAltTrace(state);
+  const { diffs, changedSteps } = computeWhatIfDiffs(state.trace, altTrace);
 
-  state.trace.ghosts.forEach((orig, i) => {
-    const alt = altGhosts[i];
-    if (!alt) return;
-    const origObs = JSON.stringify(orig.obs);
-    const altObs = JSON.stringify(alt.obs);
-    if (origObs !== altObs) {
-      changedSteps.add(i);
-    }
-  });
-
-  // Build display: show original decision + note that obs changed
   if (changedSteps.size === 0) {
     overlay.innerHTML =
-      '<div class="whatif-no-change">✨ No observations changed under this scenario.</div>';
+      '<div class="whatif-no-change">✨ No decisions changed under this scenario.</div>';
     renderTimeline(state.trace, state.scrubber.currentStep, changedSteps);
     return;
   }
 
-  changedSteps.forEach((i) => {
-    const orig = state!.trace.ghosts[i];
-    const alt = altGhosts[i];
-    if (!orig || !alt) return;
-    diffRows.push(`
+  const diffRows = diffs.map((diff) => {
+    const orig = state!.trace.ghosts[diff.step];
+    const beforeObs = orig ? JSON.stringify(orig.obs) : "";
+    const altGhost = altTrace.ghosts[diff.step];
+    const afterObs = altGhost ? JSON.stringify(altGhost.obs) : "";
+    return `
       <div class="whatif-diff-row">
-        <div class="whatif-diff-step">Step ${i + 1} · ${actionDate(orig.action)}</div>
+        <div class="whatif-diff-step">Step ${diff.step + 1}</div>
         <div class="whatif-diff-before">
-          <span>obs:</span> ${JSON.stringify(orig.obs)}
+          <span>Rule:</span> ${diff.before.ruleId} &nbsp;·&nbsp; <span>Action:</span> ${JSON.stringify(diff.before.action)}<br>
+          <span>obs:</span> ${beforeObs}
         </div>
-        <div class="whatif-diff-arrow">↓ patched →</div>
+        <div class="whatif-diff-arrow">↓ scenario → changed decision ↓</div>
         <div class="whatif-diff-after">
-          <span>obs:</span> ${JSON.stringify(alt.obs)}
+          <span>Rule:</span> ${diff.after.ruleId} &nbsp;·&nbsp; <span>Action:</span> ${JSON.stringify(diff.after.action)}<br>
+          <span>obs:</span> ${afterObs}
         </div>
       </div>
-    `);
+    `;
   });
 
   overlay.innerHTML = `
     <div class="whatif-summary">
-      🔮 <strong>${changedSteps.size}</strong> step(s) would have different observations.
-      The original decisions are shown; use the engine's <code>whatIf()</code> to rerun with the patched trace.
+      🔮 <strong>${changedSteps.size}</strong> decision(s) would change.
     </div>
     <div class="whatif-diffs">${diffRows.join("")}</div>
   `;
 
   renderTimeline(state.trace, state.scrubber.currentStep, changedSteps);
+}
+
+// ── Compute changed steps for current scenario ───────────────
+function getChangedSteps(): Set<number> {
+  if (!state || state.whatIfScenario === "none") return new Set();
+  const altTrace = buildAltTrace(state);
+  const { changedSteps } = computeWhatIfDiffs(state.trace, altTrace);
+  return changedSteps;
 }
 
 // ── Step navigation ──────────────────────────────────────────
@@ -313,42 +383,10 @@ function setStep(step: number): void {
   const s = state.scrubber.currentStep;
   renderScrubber(state.trace, s);
   renderStepDetail(s);
-  // Refresh timeline to update active step
   const changedSteps = getChangedSteps();
   renderTimeline(state.trace, s, changedSteps);
-  // Scroll active item into view
   const items = document.querySelectorAll(".timeline-item");
   items[s]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-}
-
-function getChangedSteps(): Set<number> {
-  if (!state || state.whatIfScenario === "none") return new Set();
-  const altGhosts = buildAltGhosts(state);
-  const changed = new Set<number>();
-  state.trace.ghosts.forEach((orig, i) => {
-    const alt = altGhosts[i];
-    if (alt && JSON.stringify(orig.obs) !== JSON.stringify(alt.obs)) changed.add(i);
-  });
-  return changed;
-}
-
-function buildAltGhosts(s: AppState): typeof s.trace.ghosts {
-  return s.trace.ghosts.map((g) => {
-    const obs = g.obs as Record<string, unknown>;
-    let patched = { ...obs };
-    if (s.whatIfScenario === "occupancy+20") {
-      const cur = typeof obs["areaOccupancyPct"] === "number" ? obs["areaOccupancyPct"] : 0;
-      patched = { ...obs, areaOccupancyPct: Math.min(100, cur + 20) };
-    } else if (s.whatIfScenario === "occupancy-20") {
-      const cur = typeof obs["areaOccupancyPct"] === "number" ? obs["areaOccupancyPct"] : 0;
-      patched = { ...obs, areaOccupancyPct: Math.max(0, cur - 20) };
-    } else if (s.whatIfScenario === "no-events") {
-      patched = { ...obs, localEvent: null };
-    } else if (s.whatIfScenario === "all-weekend") {
-      patched = { ...obs, isWeekend: true };
-    }
-    return { ...g, obs: patched };
-  });
 }
 
 // ── Wire up events ───────────────────────────────────────────
@@ -356,16 +394,18 @@ function init(): void {
   // Neutral badge before any trace is loaded
   renderBadge(NO_TRACE_BADGE);
 
-  // Auto-load example trace when ?example=1 or ?example=npc is in the URL
+  // Read URL params
   const params = new URLSearchParams(globalThis.location?.search ?? "");
   const exampleParam = params.get("example");
+  const whatifParam = params.get("whatif") ?? undefined;
+
   if (exampleParam === "1") {
-    void loadTrace(JSON.stringify(exampleTraceRaw));
+    void loadTrace(JSON.stringify(exampleTraceRaw), whatifParam);
   } else if (exampleParam === "npc") {
-    void loadTrace(JSON.stringify(exampleTraceNpcRaw));
+    void loadTrace(JSON.stringify(exampleTraceNpcRaw), whatifParam);
   }
 
-  // Load example trace
+  // Load example trace button
   el("btn-load-example").addEventListener("click", () => {
     void loadTrace(JSON.stringify(exampleTraceRaw));
   });
@@ -380,11 +420,10 @@ function init(): void {
       void loadTrace(reader.result as string);
     };
     reader.readAsText(file);
-    // Reset so same file can be re-loaded
     input.value = "";
   });
 
-  // Drag-and-drop on the whole page
+  // Drag-and-drop
   const dropZone = el("drop-zone");
 
   document.addEventListener("dragover", (e) => {
