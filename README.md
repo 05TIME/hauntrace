@@ -25,7 +25,7 @@ npm run demo:shortlet
 
 - `packages/core`: the skeleton (`run`, `verifyChain`, `replay`, `whatIf`, seeded `Rng`, injected `Clock`)
 - `apps/shortlet-pricing`: demo app 1, nightly pricing on EXAMPLE data
-- `apps/<app-2>`: demo app 2 (coming)
+- `apps/haunted-npc`: demo app 2, a ghost innkeeper NPC (`npm run demo:npc`)
 - `.kiro/`: Kiro steering, specs and hooks
 - `docs/ci/ci.yml`: CI workflow template
 
