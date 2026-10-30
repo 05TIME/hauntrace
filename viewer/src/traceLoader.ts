@@ -4,6 +4,13 @@
  */
 import type { TraceFile } from "./types.js";
 
+/**
+ * Built-in example traces keyed by their ?example= query parameter value.
+ * Add a new entry here to register a new built-in trace.
+ */
+export const BUILT_IN_EXAMPLE_KEYS = ["1", "npc"] as const;
+export type BuiltInExampleKey = (typeof BUILT_IN_EXAMPLE_KEYS)[number];
+
 export class TraceLoadError extends Error {
   constructor(message: string) {
     super(message);

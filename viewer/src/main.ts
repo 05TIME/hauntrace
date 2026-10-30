@@ -21,7 +21,9 @@ import {
   type BadgeState,
 } from "./getBadgeState.js";
 import exampleTraceRaw from "./example-trace.json";
+import exampleTraceNpcRaw from "./example-trace-npc.json";
 import type { TraceFile } from "./types.js";
+import { formatAction } from "./formatAction.js";
 
 // ── DOM element helpers ──────────────────────────────────────
 function el<T extends HTMLElement>(id: string): T {
@@ -140,7 +142,7 @@ function renderTimeline(
     item.innerHTML = `
       <span class="timeline-step">Step ${i + 1}</span>
       <span class="timeline-rule ${ruleClass(ghost.ruleId)}">${ruleLabel(ghost.ruleId)}</span>
-      <span class="timeline-price">${actionPrice(ghost.action)}</span>
+      <span class="timeline-price">${formatAction(ghost.action)}</span>
       <span class="timeline-date">${actionDate(ghost.action)}</span>
     `;
 
@@ -159,11 +161,25 @@ function renderTimeline(
 // ── Render scrubber ──────────────────────────────────────────
 function renderScrubber(trace: Trace, step: number): void {
   const scrubber = el<HTMLInputElement>("scrubber");
+  const btnPrev = el<HTMLButtonElement>("btn-prev");
+  const btnNext = el<HTMLButtonElement>("btn-next");
+
+  if (trace.ghosts.length === 0) {
+    scrubber.max = "0";
+    scrubber.value = "0";
+    scrubber.disabled = true;
+    el("scrubber-label").textContent = "No steps";
+    btnPrev.disabled = true;
+    btnNext.disabled = true;
+    return;
+  }
+
+  scrubber.disabled = false;
   scrubber.max = String(Math.max(0, trace.ghosts.length - 1));
   scrubber.value = String(step);
   el("scrubber-label").textContent = `Step ${step + 1} of ${trace.ghosts.length}`;
-  el<HTMLButtonElement>("btn-prev").disabled = step === 0;
-  el<HTMLButtonElement>("btn-next").disabled = step === trace.ghosts.length - 1;
+  btnPrev.disabled = step === 0;
+  btnNext.disabled = step === trace.ghosts.length - 1;
 }
 
 // ── Render step detail ───────────────────────────────────────
@@ -340,10 +356,13 @@ function init(): void {
   // Neutral badge before any trace is loaded
   renderBadge(NO_TRACE_BADGE);
 
-  // Auto-load example trace when ?example=1 is in the URL
+  // Auto-load example trace when ?example=1 or ?example=npc is in the URL
   const params = new URLSearchParams(globalThis.location?.search ?? "");
-  if (params.get("example") === "1") {
+  const exampleParam = params.get("example");
+  if (exampleParam === "1") {
     void loadTrace(JSON.stringify(exampleTraceRaw));
+  } else if (exampleParam === "npc") {
+    void loadTrace(JSON.stringify(exampleTraceNpcRaw));
   }
 
   // Load example trace

@@ -43,3 +43,8 @@ const trace = run(agent, observations, { seed: 1, startMs: 0, stepMs: 1000 });
 replay(agent, trace).ok; // true
 whatIf(agent, trace, (o) => ({ ...o, n: o.n + 5 })).diffs;
 ```
+
+## Demo app 2: Haunted NPC (`apps/haunted-npc`)
+A ghost innkeeper whose dialogue and mood/trust decisions run through the same Hauntrace core: seeded, rule-based, hash-chained, replayable, with a "what if the player had brought the lantern" what-if. Fully deterministic, no network, no API keys.
+- `npm run demo:npc` prints the encounter, head hash, replay check and the lantern what-if.
+- Open the Séance viewer with `?example=npc` to inspect the bundled NPC trace (`?example=1` loads the short-let trace).

@@ -28,3 +28,9 @@ Kiroween 2026 requires a write-up of Kiro usage. This file is updated as the bui
 ## Viewer polish (fix/viewer-polish)
 - Implemented by Kiro CLI (free plan) in one short non-interactive session (no throttling). Kiro added a pure `getBadgeState` module (`viewer/src/getBadgeState.ts`) so the hash-chain badge shows a neutral "No trace loaded" state before a trace is loaded, plus 11 new viewer tests. It aligned viewer dev tooling with the root project (vitest ^5.0.5, typescript ^7.0.2, @types/node ^26.6.6; vite bumped to ^6 because vitest 5 needs it) and added `?example=1` to auto-load the bundled EXAMPLE trace (no network).
   Hand edits: none to the code. Only this file was updated by hand. Screenshots were taken with headless Chrome outside Kiro.
+
+## Demo app 2: haunted-npc (feat/npc-demo)
+- **Spec:** Kiro CLI wrote `.kiro/specs/haunted-npc/` (requirements, design, 7 tasks) in one session before any code.
+- **Implementation:** a Kiro session implemented the tasks (`apps/haunted-npc`: agent rules, encounter script, CLI, server, trace generator, exported `example-trace-npc.json`, tests) plus the viewer `?example=npc` switch and the empty-scrubber "No steps" fix, then was cut off by a service throttling error. After a ~15 minute wait, a short continue session verified everything, confirmed the tests and builds, and ticked all 7 tasks.
+- **Viewer fix:** a further short Kiro session added `formatAction` (tested) and CSS clipping because NPC timeline cards showed raw action JSON overlapping each other.
+- Hand edits: added the missing `demo:npc` script line to `package.json` (Kiro created `cli.ts` but not the script), plus this file and the README section. Screenshots were taken with headless Chrome outside Kiro.
