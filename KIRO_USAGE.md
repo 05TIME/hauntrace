@@ -24,3 +24,7 @@ Kiroween 2026 requires a write-up of Kiro usage. This file is updated as the bui
 
 ## Next
 - Continue the remaining spec tasks with Kiro and log spec vs vibe choices here.
+
+## Viewer polish (fix/viewer-polish)
+- Implemented by Kiro CLI (free plan) in one short non-interactive session (no throttling). Kiro added a pure `getBadgeState` module (`viewer/src/getBadgeState.ts`) so the hash-chain badge shows a neutral "No trace loaded" state before a trace is loaded, plus 11 new viewer tests. It aligned viewer dev tooling with the root project (vitest ^5.0.5, typescript ^7.0.2, @types/node ^26.6.6; vite bumped to ^6 because vitest 5 needs it) and added `?example=1` to auto-load the bundled EXAMPLE trace (no network).
+  Hand edits: none to the code. Only this file was updated by hand. Screenshots were taken with headless Chrome outside Kiro.

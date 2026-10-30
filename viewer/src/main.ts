@@ -14,6 +14,12 @@ import {
   ruleLabel,
 } from "./scrubberState.js";
 import { computeWhatIfDiffs } from "./whatIfDiff.js";
+import {
+  getBadgeState,
+  NO_TRACE_BADGE,
+  VERIFYING_BADGE,
+  type BadgeState,
+} from "./getBadgeState.js";
 import exampleTraceRaw from "./example-trace.json";
 import type { TraceFile } from "./types.js";
 
@@ -32,6 +38,13 @@ interface AppState {
 }
 
 let state: AppState | null = null;
+
+// ── Badge rendering ──────────────────────────────────────────
+function renderBadge(badgeState: BadgeState): void {
+  const badge = el("chain-badge");
+  badge.className = `meta-hash-badge${badgeState.cssModifier ? ` ${badgeState.cssModifier}` : ""}`;
+  badge.innerHTML = `<span aria-hidden="true">${badgeState.icon}</span><span class="badge-label">${badgeState.label}</span>`;
+}
 
 // ── Rule colour class ────────────────────────────────────────
 function ruleClass(ruleId: string): string {
@@ -95,20 +108,9 @@ async function loadTrace(json: string): Promise<void> {
   renderStepDetail(0);
 
   // Verify chain asynchronously
-  const badge = el("chain-badge");
-  badge.className = "meta-hash-badge";
-  badge.innerHTML =
-    '<span class="badge-spinner" aria-hidden="true">⏳</span><span class="badge-label">Verifying chain…</span>';
+  renderBadge(VERIFYING_BADGE);
   const result = await verifyChain(trace);
-  if (result.ok) {
-    badge.className = "meta-hash-badge verified";
-    badge.innerHTML =
-      '<span aria-hidden="true">✅</span><span class="badge-label">Chain verified</span>';
-  } else {
-    badge.className = "meta-hash-badge broken";
-    const detail = result.brokenAt !== undefined ? ` at step ${result.brokenAt}` : "";
-    badge.innerHTML = `<span aria-hidden="true">❌</span><span class="badge-label">Chain broken${detail}: ${result.reason ?? ""}</span>`;
-  }
+  renderBadge(getBadgeState(result));
 }
 
 // ── Render meta bar ──────────────────────────────────────────
@@ -335,6 +337,15 @@ function buildAltGhosts(s: AppState): typeof s.trace.ghosts {
 
 // ── Wire up events ───────────────────────────────────────────
 function init(): void {
+  // Neutral badge before any trace is loaded
+  renderBadge(NO_TRACE_BADGE);
+
+  // Auto-load example trace when ?example=1 is in the URL
+  const params = new URLSearchParams(globalThis.location?.search ?? "");
+  if (params.get("example") === "1") {
+    void loadTrace(JSON.stringify(exampleTraceRaw));
+  }
+
   // Load example trace
   el("btn-load-example").addEventListener("click", () => {
     void loadTrace(JSON.stringify(exampleTraceRaw));
