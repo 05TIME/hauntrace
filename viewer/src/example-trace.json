@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "trace": {
+    "agent": "shortlet-pricing",
+    "agentVersion": "0.1.0",
+    "rulesetHash": "6163351538d5663cbb798257290b6fbce19622a3e0337ca45041af0e496c8dc6",
+    "options": {
+      "seed": 31,
+      "startMs": 1795996800000,
+      "stepMs": 60000
+    },
+    "ghosts": [
+      {
+        "step": 0,
+        "timeMs": 1795996800000,
+        "obs": {
+          "date": "2026-12-01",
+          "daysUntil": 1,
+          "isWeekend": false,
+          "areaOccupancyPct": 48,
+          "localEvent": null
+        },
+        "stateBefore": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 0
+        },
+        "ruleId": "last-minute",
+        "reason": "Last minute (1d) with 48% occupancy (-20%)",
+        "action": {
+          "date": "2026-12-01",
+          "price": 80,
+          "multiplier": 0.8
+        },
+        "stateAfter": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 1
+        },
+        "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "hash": "3d83705b52378f67d9b8808f9842aa44fd9057bd43602c45a454bc742fff2e08"
+      },
+      {
+        "step": 1,
+        "timeMs": 1795996860000,
+        "obs": {
+          "date": "2026-12-02",
+          "daysUntil": 2,
+          "isWeekend": false,
+          "areaOccupancyPct": 70,
+          "localEvent": null
+        },
+        "stateBefore": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 1
+        },
+        "ruleId": "fallback",
+        "reason": "No rule fired: base price with seeded nudge x1.007",
+        "action": {
+          "date": "2026-12-02",
+          "price": 101,
+          "multiplier": 1.007
+        },
+        "stateAfter": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 2
+        },
+        "prevHash": "3d83705b52378f67d9b8808f9842aa44fd9057bd43602c45a454bc742fff2e08",
+        "hash": "f24376df1ae8a864730af741fea1ff5533041552d05b9c7329de80d251b55ee6"
+      },
+      {
+        "step": 2,
+        "timeMs": 1795996920000,
+        "obs": {
+          "date": "2026-12-04",
+          "daysUntil": 4,
+          "isWeekend": true,
+          "areaOccupancyPct": 72,
+          "localEvent": null
+        },
+        "stateBefore": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 2
+        },
+        "ruleId": "weekend",
+        "reason": "Weekend night (+10%)",
+        "action": {
+          "date": "2026-12-04",
+          "price": 110,
+          "multiplier": 1.1
+        },
+        "stateAfter": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 3
+        },
+        "prevHash": "f24376df1ae8a864730af741fea1ff5533041552d05b9c7329de80d251b55ee6",
+        "hash": "62bd4eedf76b5dd40cb9296fe9305fcb71e6d676815fda996b9bf6f3d1c26224"
+      },
+      {
+        "step": 3,
+        "timeMs": 1795996980000,
+        "obs": {
+          "date": "2026-12-05",
+          "daysUntil": 5,
+          "isWeekend": true,
+          "areaOccupancyPct": 90,
+          "localEvent": null
+        },
+        "stateBefore": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 3
+        },
+        "ruleId": "high-demand",
+        "reason": "High demand: 90% occupancy (+20%)",
+        "action": {
+          "date": "2026-12-05",
+          "price": 120,
+          "multiplier": 1.2
+        },
+        "stateAfter": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 4
+        },
+        "prevHash": "62bd4eedf76b5dd40cb9296fe9305fcb71e6d676815fda996b9bf6f3d1c26224",
+        "hash": "8d3412fc6b46b4e3c2af321bdbb720b1ce89cdc0cd73b88e5c3b4ef652e7f3f6"
+      },
+      {
+        "step": 4,
+        "timeMs": 1795997040000,
+        "obs": {
+          "date": "2026-12-12",
+          "daysUntil": 12,
+          "isWeekend": true,
+          "areaOccupancyPct": 80,
+          "localEvent": "Year-end concert"
+        },
+        "stateBefore": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 4
+        },
+        "ruleId": "event-surge",
+        "reason": "Event nearby: Year-end concert (+35%)",
+        "action": {
+          "date": "2026-12-12",
+          "price": 135,
+          "multiplier": 1.35
+        },
+        "stateAfter": {
+          "basePrice": 100,
+          "floorPrice": 60,
+          "ceilingPrice": 200,
+          "nightsPriced": 5
+        },
+        "prevHash": "8d3412fc6b46b4e3c2af321bdbb720b1ce89cdc0cd73b88e5c3b4ef652e7f3f6",
+        "hash": "288a33e204b5e29dece1e48a47ab6340d7e1fca9916d02a4881c0f0f909953e6"
+      }
+    ],
+    "headHash": "288a33e204b5e29dece1e48a47ab6340d7e1fca9916d02a4881c0f0f909953e6"
+  }
+}
