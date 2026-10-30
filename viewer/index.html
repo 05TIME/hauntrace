@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Séance — Hauntrace Viewer</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-inner">
+        <h1 class="app-title">
+          <span class="title-icon" aria-hidden="true">🕯️</span>
+          Séance
+          <span class="title-sub">Hauntrace Viewer</span>
+        </h1>
+        <div class="header-actions">
+          <button id="btn-load-example" class="btn btn-primary" type="button">
+            🎃 Load EXAMPLE Trace
+          </button>
+          <label class="btn btn-secondary" for="file-input">
+            📂 Open Trace File
+            <input
+              id="file-input"
+              type="file"
+              accept=".json,application/json"
+              aria-label="Open trace JSON file"
+            />
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <main id="app-main">
+      <!-- Drop zone shown when no trace loaded -->
+      <section
+        id="drop-zone"
+        class="drop-zone"
+        role="region"
+        aria-label="Drop zone for trace files"
+        aria-live="polite"
+      >
+        <div class="drop-zone-inner">
+          <div class="drop-icon" aria-hidden="true">👻</div>
+          <p class="drop-title">Summon a Trace</p>
+          <p class="drop-hint">
+            Drop a <code>.json</code> trace file here, click
+            <strong>Open Trace File</strong>, or load the
+            <strong>EXAMPLE</strong> trace.
+          </p>
+          <div id="drop-error" class="drop-error" role="alert" aria-live="assertive" hidden></div>
+        </div>
+      </section>
+
+      <!-- Viewer shown once trace is loaded -->
+      <section id="viewer" class="viewer" hidden>
+        <!-- Trace meta bar -->
+        <div class="trace-meta" id="trace-meta">
+          <div class="meta-agent">
+            <span class="meta-label">Agent</span>
+            <span id="meta-agent-name" class="meta-value"></span>
+            <span id="meta-agent-version" class="meta-version"></span>
+          </div>
+          <div class="meta-steps">
+            <span class="meta-label">Steps</span>
+            <span id="meta-step-count" class="meta-value"></span>
+          </div>
+          <div class="meta-hash-badge" id="chain-badge" aria-live="polite">
+            <span class="badge-spinner" aria-hidden="true">⏳</span>
+            <span class="badge-label">Verifying chain…</span>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-section">
+          <h2 class="section-title">
+            <span aria-hidden="true">🦴</span> Timeline
+          </h2>
+          <div
+            id="timeline"
+            class="timeline"
+            role="list"
+            aria-label="Decision timeline"
+          ></div>
+        </div>
+
+        <!-- Scrubber -->
+        <div class="scrubber-section" role="group" aria-label="Step scrubber">
+          <button id="btn-prev" class="scrubber-btn" type="button" aria-label="Previous step">
+            &#8592;
+          </button>
+          <input
+            id="scrubber"
+            type="range"
+            min="0"
+            value="0"
+            step="1"
+            class="scrubber-input"
+            aria-label="Select step"
+          />
+          <button id="btn-next" class="scrubber-btn" type="button" aria-label="Next step">
+            &#8594;
+          </button>
+          <span id="scrubber-label" class="scrubber-label" aria-live="polite">Step 1 of 1</span>
+        </div>
+
+        <!-- Step detail card -->
+        <div class="step-detail-section">
+          <h2 class="section-title">
+            <span aria-hidden="true">💀</span> Step Detail
+          </h2>
+          <div id="step-detail" class="step-detail-card" aria-live="polite">
+            <div class="step-detail-placeholder">Select a step above to inspect the ghost.</div>
+          </div>
+        </div>
+
+        <!-- What-if panel -->
+        <div class="whatif-section">
+          <h2 class="section-title">
+            <span aria-hidden="true">🔮</span> What-If Ghost Diff
+          </h2>
+          <div class="whatif-controls">
+            <label class="whatif-label" for="whatif-select">
+              Apply scenario:
+            </label>
+            <select id="whatif-select" class="whatif-select">
+              <option value="none">— none (show original) —</option>
+              <option value="occupancy+20">Area occupancy +20 pts</option>
+              <option value="occupancy-20">Area occupancy −20 pts</option>
+              <option value="no-events">Remove all local events</option>
+              <option value="all-weekend">Mark all nights as weekend</option>
+            </select>
+          </div>
+          <div id="whatif-overlay" class="whatif-overlay" aria-live="polite">
+            <p class="whatif-empty">Choose a scenario above to see how decisions would change.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>
+        Hauntrace · Séance viewer ·
+        <span aria-hidden="true">🎃</span>
+        <em>EXAMPLE data — not real market data</em>
+      </p>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

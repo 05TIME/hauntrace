@@ -7,8 +7,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
-    "demo:shortlet": "npm run build && node dist/apps/shortlet-pricing/src/cli.js"
+    "test": "vitest run && npm --prefix viewer run test",
+    "demo:shortlet": "npm run build && node dist/apps/shortlet-pricing/src/cli.js",
+    "viewer:dev": "npm --prefix viewer run dev",
+    "viewer:build": "npm --prefix viewer install && npm --prefix viewer run build"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
