@@ -51,8 +51,10 @@ export function getBadgeState(result: VerifyResult): BadgeState {
       label: "Chain verified",
     };
   }
+  // brokenAt is 0-based (g.step index from the engine); add 1 so the badge
+  // matches the 1-based step numbers shown on the timeline.
   const detail =
-    result.brokenAt !== undefined ? ` at step ${result.brokenAt}` : "";
+    result.brokenAt !== undefined ? ` at step ${result.brokenAt + 1}` : "";
   const reason = result.reason ? `: ${result.reason}` : "";
   return {
     status: "broken",
