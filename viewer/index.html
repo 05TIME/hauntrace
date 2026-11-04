@@ -84,6 +84,34 @@
           ></div>
         </div>
 
+        <!-- Tamper and haunt -->
+        <div class="tamper-section">
+          <div class="tamper-actions">
+            <button
+              id="btn-tamper"
+              class="btn btn-secondary"
+              type="button"
+              aria-expanded="false"
+              aria-controls="tamper-panel"
+            >
+              🪦 Tamper
+            </button>
+            <button id="btn-exorcise" class="btn btn-primary" type="button" hidden>
+              🕯️ Exorcise
+            </button>
+          </div>
+          <div id="tamper-panel" class="tamper-panel" hidden>
+            <label class="tamper-label" for="tamper-reason">
+              Rewrite the recorded reason of the selected step (hash is NOT recomputed):
+            </label>
+            <input id="tamper-reason" class="tamper-input" type="text" autocomplete="off" />
+            <button id="btn-tamper-apply" class="btn btn-secondary" type="button">
+              Haunt selected step
+            </button>
+          </div>
+          <p id="tamper-status" class="tamper-status" role="status" aria-live="polite"></p>
+        </div>
+
         <!-- Scrubber -->
         <div class="scrubber-section" role="group" aria-label="Step scrubber">
           <button id="btn-prev" class="scrubber-btn" type="button" aria-label="Previous step">

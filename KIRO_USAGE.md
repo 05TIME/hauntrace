@@ -45,3 +45,7 @@ Kiroween 2026 requires a write-up of Kiro usage. This file is updated as the bui
 - Hand edits: none to the code. Only this file was updated by hand. Screenshots were taken with a headless Chrome script outside Kiro.
 
 - **Viewer badge step number (fix/viewer-broken-step-number):** Kiro CLI made the whole code change: `getBadgeState` now shows `brokenAt + 1` so the "Chain broken at step N" badge matches the 1-based timeline (core `verifyChain` stays 0-based), updated two unit tests that encoded the old numbering, and added `viewer/test/chainBreakBadge.test.ts` (tampered NPC trace regression). No throttles. Hand edits: this KIRO_USAGE.md entry only.
+
+## Tamper and haunt mode + second hook (feat/tamper-mode)
+- One Kiro CLI session (non-interactive, file tools only) wrote `.kiro/specs/tamper-mode/`, implemented `viewer/src/tamper.ts` (alter one step without re-hashing, re-verify, flag every step from the break onward, restore) with `viewer/test/tamper.test.ts`, added the Tamper / "Haunt selected step" / Exorcise controls and haunted timeline styling, escaped step-detail reasons in `main.ts`, and created the second hook `.kiro/hooks/sample-traces-replay.kiro.hook` plus tests that both bundled example traces still verify and replay.
+- All tests passed first time. Hand edits: this entry and the README line. Tests and builds were run outside Kiro.

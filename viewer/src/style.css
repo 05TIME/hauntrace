@@ -403,6 +403,98 @@ pre {
   border-style: dashed;
 }
 
+/* ── Tamper and haunt ───────────────────────────────────────── */
+.timeline-item.haunted {
+  border-color: var(--danger);
+  border-style: dotted;
+  background: rgba(239, 68, 68, 0.12);
+  animation: haunt-flicker 2.4s ease-in-out infinite;
+}
+
+.timeline-item.haunted.tampered {
+  border-style: solid;
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.timeline-item.haunted .timeline-price {
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+}
+
+.haunt-mark {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fca5a5;
+}
+
+@keyframes haunt-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-item.haunted { animation: none; }
+}
+
+.tamper-section {
+  margin: 12px 0;
+}
+
+.tamper-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tamper-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  background: var(--bg-800);
+}
+
+.tamper-label {
+  flex-basis: 100%;
+  font-size: 0.85rem;
+  color: var(--bone-muted);
+}
+
+.tamper-input {
+  flex: 1;
+  min-width: 220px;
+  min-height: var(--touch-min);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bone-muted);
+  background: var(--bg-900);
+  color: var(--bone);
+  font-family: var(--font);
+}
+
+.tamper-status {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #fca5a5;
+}
+
+.tamper-status:empty {
+  display: none;
+}
+
+.detail-haunted-note {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-left: 4px solid var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  font-weight: 600;
+}
+
 .timeline-step {
   font-size: 0.75rem;
   color: var(--bone-muted);

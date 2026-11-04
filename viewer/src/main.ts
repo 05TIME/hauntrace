@@ -27,6 +27,7 @@ import exampleTraceNpcRaw from "./example-trace-npc.json";
 import type { TraceFile } from "./types.js";
 import { formatAction } from "./formatAction.js";
 import { formatDiffCard } from "./formatDiffCard.js";
+import { tamperTrace, restoreTrace, analyzeTrace, defaultTamperEdit } from "./tamper.js";
 
 // ── DOM element helpers ──────────────────────────────────────
 function el<T extends HTMLElement>(id: string): T {
@@ -37,12 +38,20 @@ function el<T extends HTMLElement>(id: string): T {
 
 // ── State ────────────────────────────────────────────────────
 interface AppState {
+  /** The trace being displayed (a tampered copy while haunted). */
   trace: Trace;
+  /** The pristine loaded trace; never mutated, restored by "Exorcise". */
+  original: Trace;
+  /** 0-based index of the tampered step, or null when intact. */
+  tamperedStep: number | null;
   scrubber: ReturnType<typeof createScrubberState>;
   whatIfScenario: string;
 }
 
 let state: AppState | null = null;
+
+/** 0-based steps currently flagged haunted (tampered step and all later ones). */
+let haunted: Set<number> = new Set();
 
 // ── Badge rendering ──────────────────────────────────────────
 function renderBadge(badgeState: BadgeState): void {
@@ -139,9 +148,13 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
   const { trace } = file;
   state = {
     trace,
+    original: restoreTrace(trace),
+    tamperedStep: null,
     scrubber: createScrubberState(trace),
     whatIfScenario: "none",
   };
+  haunted = new Set();
+  renderTamperControls();
 
   // Show viewer, hide drop zone
   dropZone.hidden = true;
@@ -192,12 +205,26 @@ function renderTimeline(
     item.setAttribute("aria-label", `Step ${i + 1}: ${ruleLabel(ghost.ruleId)}, ${actionDate(ghost.action)}`);
     if (i === activeStep) item.classList.add("active");
     if (changedSteps.has(i)) item.classList.add("changed");
+    if (haunted.has(i)) item.classList.add("haunted");
+    if (state?.tamperedStep === i) item.classList.add("tampered");
+    const hauntLabel = state?.tamperedStep === i ? ", tampered" : haunted.has(i) ? ", haunted" : "";
+    item.setAttribute(
+      "aria-label",
+      `Step ${i + 1}: ${ruleLabel(ghost.ruleId)}, ${actionDate(ghost.action)}${hauntLabel}`,
+    );
+    const hauntMark =
+      state?.tamperedStep === i
+        ? '<span class="haunt-mark">🪦 tampered</span>'
+        : haunted.has(i)
+          ? '<span class="haunt-mark">👻 haunted</span>'
+          : "";
 
     item.innerHTML = `
       <span class="timeline-step">Step ${i + 1}</span>
       <span class="timeline-rule ${ruleClass(ghost.ruleId)}">${ruleLabel(ghost.ruleId)}</span>
       <span class="timeline-price">${formatAction(ghost.action)}</span>
       <span class="timeline-date">${actionDate(ghost.action)}</span>
+      ${hauntMark}
     `;
 
     item.addEventListener("click", () => setStep(i));
@@ -244,11 +271,12 @@ function renderStepDetail(step: number): void {
 
   const card = el("step-detail");
   card.innerHTML = `
+    ${haunted.has(step) ? `<div class="detail-haunted-note">${state.tamperedStep === step ? "🪦 This step was tampered with." : "👻 Haunted: the chain is broken before this step."}</div>` : ""}
     <div class="detail-header">
       <span class="detail-rule-badge ${ruleClass(ghost.ruleId)}">${ruleLabel(ghost.ruleId)}</span>
       <span class="detail-time">${formatTime(ghost.timeMs)}</span>
     </div>
-    <div class="detail-reason">"${ghost.reason}"</div>
+    <div class="detail-reason">"${escHtml(ghost.reason)}"</div>
     <div class="detail-grids">
       <div class="detail-block">
         <div class="detail-block-title">📋 Observation (obs)</div>
@@ -426,16 +454,86 @@ function setStep(step: number): void {
   const s = state.scrubber.currentStep;
   renderScrubber(state.trace, s);
   renderStepDetail(s);
+  if (!el("tamper-panel").hidden) syncTamperInput();
   const changedSteps = getChangedSteps();
   renderTimeline(state.trace, s, changedSteps);
   const items = document.querySelectorAll(".timeline-item");
   items[s]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
 }
 
+// ── Tamper and haunt ─────────────────────────────────────────
+function renderTamperControls(): void {
+  const tampered = state?.tamperedStep != null;
+  el("btn-exorcise").hidden = !tampered;
+  el("tamper-status").textContent =
+    tampered && state
+      ? `🪦 Step ${state.tamperedStep! + 1} was rewritten without re-hashing. ${haunted.size} step(s) haunted.`
+      : "";
+}
+
+/** Verify the displayed trace and refresh badge, timeline, detail and status. */
+async function reverifyAndRender(): Promise<void> {
+  if (!state) return;
+  const shown = state.trace;
+  renderBadge(VERIFYING_BADGE);
+  const analysis = await analyzeTrace(shown);
+  // Ignore stale results if the user tampered/exorcised/loaded again meanwhile.
+  if (!state || state.trace !== shown) return;
+  haunted = analysis.hauntedSteps;
+  renderBadge(analysis.badge);
+  renderTamperControls();
+  renderWhatIf(); // also re-renders the timeline with haunted markers
+  renderStepDetail(state.scrubber.currentStep);
+}
+
+async function applyTamper(): Promise<void> {
+  if (!state || state.trace.ghosts.length === 0) return;
+  const step = state.scrubber.currentStep;
+  const input = el<HTMLInputElement>("tamper-reason");
+  const typed = input.value;
+  const original = state.original;
+  const originalReason = original.ghosts[step]?.reason ?? "";
+  // Use the typed reason if it actually differs; otherwise a default edit that always changes the hash.
+  const edit = typed !== originalReason && typed !== "" ? { reason: typed } : defaultTamperEdit(originalReason);
+  // Always tamper from the pristine original so there is only ever one tampered step.
+  state.trace = tamperTrace(original, step, edit);
+  state.tamperedStep = step;
+  await reverifyAndRender();
+}
+
+async function exorcise(): Promise<void> {
+  if (!state) return;
+  state.trace = restoreTrace(state.original);
+  state.tamperedStep = null;
+  haunted = new Set();
+  await reverifyAndRender();
+}
+
+function syncTamperInput(): void {
+  if (!state) return;
+  el<HTMLInputElement>("tamper-reason").value =
+    state.original.ghosts[state.scrubber.currentStep]?.reason ?? "";
+}
+
 // ── Wire up events ───────────────────────────────────────────
 function init(): void {
   // Neutral badge before any trace is loaded
   renderBadge(NO_TRACE_BADGE);
+
+  // Tamper controls
+  el("btn-tamper").addEventListener("click", () => {
+    const panel = el("tamper-panel");
+    const open = panel.hidden;
+    panel.hidden = !open;
+    el("btn-tamper").setAttribute("aria-expanded", String(open));
+    if (open) syncTamperInput();
+  });
+  el("btn-tamper-apply").addEventListener("click", () => {
+    void applyTamper();
+  });
+  el("btn-exorcise").addEventListener("click", () => {
+    void exorcise();
+  });
 
   // Read URL params
   const params = new URLSearchParams(globalThis.location?.search ?? "");
@@ -514,6 +612,11 @@ function init(): void {
   // Keyboard navigation
   document.addEventListener("keydown", (e) => {
     if (!state) return;
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA")) {
+      // Let the tamper text box (and other form controls) keep their own arrow-key behaviour.
+      if (t.id !== "scrubber") return;
+    }
     if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
       e.preventDefault();
       state.scrubber = prevStep(state.scrubber, state.trace);
