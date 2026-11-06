@@ -1,5 +1,6 @@
 export * from "./clock.js";
 export * from "./engine.js";
+export * from "./explain.js";
 export * from "./hash.js";
 export * from "./http.js";
 export * from "./io.js";

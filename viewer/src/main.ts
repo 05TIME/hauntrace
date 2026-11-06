@@ -2,7 +2,7 @@
  * Séance – Hauntrace Trace Viewer
  * Main entry point: wires up file loading, UI rendering, and interactions.
  */
-import type { Trace } from "./types.js";
+import type { Trace, VerifyResult } from "./types.js";
 import { parseTraceFile, TraceLoadError } from "./traceLoader.js";
 import { verifyChain } from "./verifyChain.js";
 import {
@@ -27,6 +27,10 @@ import exampleTraceNpcRaw from "./example-trace-npc.json";
 import type { TraceFile } from "./types.js";
 import { formatAction } from "./formatAction.js";
 import { formatDiffCard } from "./formatDiffCard.js";
+import { encodeTrace, decodeTrace, extractPayload, buildShareUrl, ShareLinkError } from "./shareLink.js";
+import { explainRun } from "./explainRun.js";
+import { selectStartup } from "./startupSelection.js";
+import { escapeHtml, escapeJson } from "./escapeHtml.js";
 
 // ── DOM element helpers ──────────────────────────────────────
 function el<T extends HTMLElement>(id: string): T {
@@ -38,6 +42,7 @@ function el<T extends HTMLElement>(id: string): T {
 // ── State ────────────────────────────────────────────────────
 interface AppState {
   trace: Trace;
+  traceFile: TraceFile;
   scrubber: ReturnType<typeof createScrubberState>;
   whatIfScenario: string;
 }
@@ -48,7 +53,7 @@ let state: AppState | null = null;
 function renderBadge(badgeState: BadgeState): void {
   const badge = el("chain-badge");
   badge.className = `meta-hash-badge${badgeState.cssModifier ? ` ${badgeState.cssModifier}` : ""}`;
-  badge.innerHTML = `<span aria-hidden="true">${badgeState.icon}</span><span class="badge-label">${badgeState.label}</span>`;
+  badge.innerHTML = `<span aria-hidden="true">${escapeHtml(badgeState.icon)}</span><span class="badge-label">${escapeHtml(badgeState.label)}</span>`;
 }
 
 // ── Rule colour class ────────────────────────────────────────
@@ -139,6 +144,7 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
   const { trace } = file;
   state = {
     trace,
+    traceFile: file,
     scrubber: createScrubberState(trace),
     whatIfScenario: "none",
   };
@@ -146,6 +152,7 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
   // Show viewer, hide drop zone
   dropZone.hidden = true;
   viewer.hidden = false;
+  el<HTMLButtonElement>("btn-share-link").disabled = false;
 
   renderMeta(trace);
 
@@ -155,6 +162,7 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
   renderTimeline(trace, 0, new Set());
   renderScrubber(trace, 0);
   renderStepDetail(0);
+  renderExplain();
 
   // If a scenario was preselected, render what-if immediately
   if (state.whatIfScenario !== "none") {
@@ -166,7 +174,11 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
   // Verify chain asynchronously
   renderBadge(VERIFYING_BADGE);
   const result = await verifyChain(trace);
+  // Stale-result guard: another trace may have been loaded while we awaited.
+  // Only render the verification for the trace that is still current.
+  if (state?.trace !== trace) return;
   renderBadge(getBadgeState(result));
+  renderExplain(result);
 }
 
 // ── Render meta bar ──────────────────────────────────────────
@@ -195,9 +207,9 @@ function renderTimeline(
 
     item.innerHTML = `
       <span class="timeline-step">Step ${i + 1}</span>
-      <span class="timeline-rule ${ruleClass(ghost.ruleId)}">${ruleLabel(ghost.ruleId)}</span>
-      <span class="timeline-price">${formatAction(ghost.action)}</span>
-      <span class="timeline-date">${actionDate(ghost.action)}</span>
+      <span class="timeline-rule ${ruleClass(ghost.ruleId)}">${escapeHtml(ruleLabel(ghost.ruleId))}</span>
+      <span class="timeline-price">${escapeHtml(formatAction(ghost.action))}</span>
+      <span class="timeline-date">${escapeHtml(actionDate(ghost.action))}</span>
     `;
 
     item.addEventListener("click", () => setStep(i));
@@ -245,31 +257,31 @@ function renderStepDetail(step: number): void {
   const card = el("step-detail");
   card.innerHTML = `
     <div class="detail-header">
-      <span class="detail-rule-badge ${ruleClass(ghost.ruleId)}">${ruleLabel(ghost.ruleId)}</span>
-      <span class="detail-time">${formatTime(ghost.timeMs)}</span>
+      <span class="detail-rule-badge ${ruleClass(ghost.ruleId)}">${escapeHtml(ruleLabel(ghost.ruleId))}</span>
+      <span class="detail-time">${escapeHtml(formatTime(ghost.timeMs))}</span>
     </div>
-    <div class="detail-reason">"${ghost.reason}"</div>
+    <div class="detail-reason">"${escapeHtml(ghost.reason)}"</div>
     <div class="detail-grids">
       <div class="detail-block">
         <div class="detail-block-title">📋 Observation (obs)</div>
-        <pre>${JSON.stringify(ghost.obs, null, 2)}</pre>
+        <pre>${escapeJson(ghost.obs, 2)}</pre>
       </div>
       <div class="detail-block">
         <div class="detail-block-title">⬅️ State Before</div>
-        <pre>${JSON.stringify(ghost.stateBefore, null, 2)}</pre>
+        <pre>${escapeJson(ghost.stateBefore, 2)}</pre>
       </div>
       <div class="detail-block">
         <div class="detail-block-title">➡️ State After</div>
-        <pre>${JSON.stringify(ghost.stateAfter, null, 2)}</pre>
+        <pre>${escapeJson(ghost.stateAfter, 2)}</pre>
       </div>
     </div>
     <div class="detail-block">
       <div class="detail-block-title">🎯 Action</div>
-      <pre>${JSON.stringify(ghost.action, null, 2)}</pre>
+      <pre>${escapeJson(ghost.action, 2)}</pre>
     </div>
     <div class="detail-hash">
-      <span>prevHash:</span> ${ghost.prevHash}<br>
-      <span>hash:</span> ${ghost.hash}
+      <span>prevHash:</span> ${escapeHtml(ghost.prevHash)}<br>
+      <span>hash:</span> ${escapeHtml(ghost.hash)}
     </div>
   `;
 }
@@ -402,14 +414,8 @@ function renderWhatIf(): void {
   renderTimeline(state.trace, state.scrubber.currentStep, changedSteps);
 }
 
-/** Minimal HTML escaping to prevent XSS from trace content. */
-function escHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+/** HTML escaping for trace content (see escapeHtml.ts). */
+const escHtml = escapeHtml;
 
 // ── Compute changed steps for current scenario ───────────────
 function getChangedSteps(): Set<number> {
@@ -432,21 +438,82 @@ function setStep(step: number): void {
   items[s]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
 }
 
+// ── Explain this run ─────────────────────────────────────────
+/** Render the story. Without a verify result yet, show a placeholder. */
+function renderExplain(result?: VerifyResult): void {
+  const box = el("explain-content");
+  box.textContent = "";
+  if (!state) return;
+  if (!result) {
+    const p = document.createElement("p");
+    p.textContent = "Verifying chain before explaining…";
+    box.appendChild(p);
+    return;
+  }
+  const story = explainRun(state.trace, result);
+  const add = (text: string, cls?: string): void => {
+    const p = document.createElement("p");
+    if (cls) p.className = cls;
+    p.textContent = text; // textContent: trace content is untrusted
+    box.appendChild(p);
+  };
+  add(story.intro);
+  story.steps.forEach((s) => add(s, "explain-step"));
+  add(story.closing, result.ok ? "explain-closing" : "explain-closing broken");
+}
+
+// ── Share links ──────────────────────────────────────────────
+function showLoadError(msg: string): void {
+  const errBox = el("drop-error");
+  errBox.textContent = `⚠️ ${msg}`;
+  errBox.hidden = false;
+}
+
+async function loadFromShareHash(hash: string): Promise<void> {
+  const payload = extractPayload(hash);
+  if (payload === null) return;
+  try {
+    const file = await decodeTrace(payload);
+    await loadTrace(JSON.stringify(file));
+  } catch (e) {
+    showLoadError(e instanceof ShareLinkError ? e.message : `Could not load share link: ${String(e)}`);
+  }
+}
+
+async function copyShareLink(): Promise<void> {
+  if (!state) return;
+  const status = el("btn-share-link");
+  const original = "🔗 Copy share link";
+  try {
+    const payload = await encodeTrace(state.traceFile);
+    const url = buildShareUrl(globalThis.location?.href ?? "", payload);
+    await navigator.clipboard.writeText(url);
+    status.textContent = "✅ Link copied";
+  } catch (e) {
+    status.textContent = e instanceof ShareLinkError ? `⚠️ ${e.message}` : "⚠️ Could not copy link";
+  }
+  setTimeout(() => {
+    status.textContent = original;
+  }, 3000);
+}
+
 // ── Wire up events ───────────────────────────────────────────
 function init(): void {
   // Neutral badge before any trace is loaded
   renderBadge(NO_TRACE_BADGE);
 
-  // Read URL params
-  const params = new URLSearchParams(globalThis.location?.search ?? "");
-  const exampleParam = params.get("example");
-  const whatifParam = params.get("whatif") ?? undefined;
-
-  if (exampleParam === "1") {
-    void loadTrace(JSON.stringify(exampleTraceRaw), whatifParam);
-  } else if (exampleParam === "npc") {
-    void loadTrace(JSON.stringify(exampleTraceNpcRaw), whatifParam);
+  // Read URL: a #t= share payload always wins over ?example / ?whatif.
+  const choice = selectStartup(globalThis.location?.search ?? "", globalThis.location?.hash ?? "");
+  if (choice.kind === "share") {
+    void loadFromShareHash(globalThis.location?.hash ?? "");
+  } else if (choice.kind === "example") {
+    const raw = choice.key === "npc" ? exampleTraceNpcRaw : exampleTraceRaw;
+    void loadTrace(JSON.stringify(raw), choice.whatif);
   }
+
+  el("btn-share-link").addEventListener("click", () => {
+    void copyShareLink();
+  });
 
   // Load example trace button
   el("btn-load-example").addEventListener("click", () => {

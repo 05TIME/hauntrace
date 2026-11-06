@@ -39,7 +39,12 @@ export function prevStep(state: ScrubberState, trace: Trace): ScrubberState {
 
 /** Returns a human-readable timestamp string for a ghost's timeMs. */
 export function formatTime(timeMs: number): string {
-  return new Date(timeMs).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  try {
+    return new Date(timeMs).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  } catch {
+    // Out-of-range timeMs from an untrusted trace must not crash rendering.
+    return `t=${timeMs}ms`;
+  }
 }
 
 /** Returns the rule label with a spooky emoji for known rule IDs. */
