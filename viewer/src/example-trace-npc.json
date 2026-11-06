@@ -26,7 +26,7 @@
           "beatsPlayed": 0
         },
         "ruleId": "low-trust",
-        "reason": "playerTrust=15 (\u226420) and mood=neutral: warning issued",
+        "reason": "playerTrust=15 (≤20) and mood=neutral: warning issued",
         "action": {
           "dialogue": "I don't know your face, and I don't trust what I don't know. State your business.",
           "moodAfter": "wary",
@@ -59,7 +59,7 @@
         "ruleId": "lantern-gift",
         "reason": "Player offered lantern while mood=wary: warmth granted",
         "action": {
-          "dialogue": "A lantern\u2026 the old flame-kind. You ease my chill, stranger. Come in, come in.",
+          "dialogue": "A lantern… the old flame-kind. You ease my chill, stranger. Come in, come in.",
           "moodAfter": "warm",
           "trustChange": 15
         },
@@ -87,9 +87,9 @@
           "beatsPlayed": 2
         },
         "ruleId": "midnight-dread",
-        "reason": "Hour=1 (0\u20133) while mood=warm: midnight dread takes hold",
+        "reason": "Hour=1 (0–3) while mood=warm: midnight dread takes hold",
         "action": {
-          "dialogue": "The\u2026 the veil thins now. Do you hear them? The ones who checked in and never checked out\u2026",
+          "dialogue": "The… the veil thins now. Do you hear them? The ones who checked in and never checked out…",
           "moodAfter": "haunted",
           "trustChange": 0
         },
@@ -147,9 +147,9 @@
           "beatsPlayed": 4
         },
         "ruleId": "high-trust",
-        "reason": "playerTrust=75 (\u226570): secret shared",
+        "reason": "playerTrust=75 (≥70): secret shared",
         "action": {
-          "dialogue": "Since you've proven yourself\u2026 there is a passage behind the portrait. Use it wisely.",
+          "dialogue": "Since you've proven yourself… there is a passage behind the portrait. Use it wisely.",
           "moodAfter": "warm",
           "trustChange": 5
         },
