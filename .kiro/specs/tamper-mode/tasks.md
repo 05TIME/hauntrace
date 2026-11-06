@@ -10,3 +10,4 @@
 - [x] 8. Spec — requirements, design, tasks in `.kiro/specs/tamper-mode/`
 
 - [x] 9. Review fixes — deterministic `npm run regen:traces` (builders + generators), generator output paths fixed, hook updated, staleness/determinism tests, loaded-broken traces flagged, wider HTML escaping (req 9, 12, 13). Not executed inside Kiro (no shell): run `npm test`, `npm run viewer:build` and `npm run build` to confirm.
+- [x] 10. Integration with live-whatif-editor (merge of main): both feature sets kept in `main.ts`; `setStep` re-syncs the tamper input AND resets the live editor; scenario "none" re-render preserves live "changed" marks; tamper apply button renamed "Tamper selected step"; `viewer/test/integration.test.ts` covers the pure-module composition on both bundled traces. DOM wiring (mutual exclusion, prefill) is not unit-tested.

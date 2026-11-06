@@ -50,3 +50,5 @@ A ghost innkeeper whose dialogue and mood/trust decisions run through the same H
 - Open the Séance viewer with `?example=npc` to inspect the bundled NPC trace (`?example=1` loads the short-let trace).
 - Press **Tamper** in the viewer to alter one recorded step without re-hashing and watch the chain break spread from that step; **Exorcise** restores the original.
 - `npm run regen:traces` rebuilds both bundled example traces deterministically (the `sample-traces-replay` Kiro hook runs it when core/app `.ts` files change); tests fail if a bundled trace is stale.
+- In the viewer, pick a step, edit its observation in the "Haunt this step" panel and see which later decisions change (live what-if); Reset restores the original run.
+- The two viewer features compose: live edits and scenarios are mutually exclusive, while Tamper/Exorcise (which only touch recorded reasons and hash verification, never observations) can be used before, during or after a live edit.

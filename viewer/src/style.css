@@ -416,6 +416,12 @@ pre {
   background: rgba(239, 68, 68, 0.25);
 }
 
+/* A step that is both haunted (red) and changed by a live/scenario what-if keeps the dashed "changed" border. */
+.timeline-item.haunted.changed,
+.timeline-item.haunted.tampered.changed {
+  border-style: dashed;
+}
+
 .timeline-item.haunted .timeline-price {
   text-decoration: line-through;
   text-decoration-color: var(--danger);
@@ -698,6 +704,47 @@ pre {
 
 .detail-hash span {
   color: var(--accent-3);
+}
+
+/* ── Live what-if editor ────────────────────────────────────── */
+.live-section {
+  background: var(--surface);
+  border: 1px solid var(--bg-600);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+
+.live-text {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0 12px;
+  background: var(--bg-700);
+  color: var(--bone);
+  border: 1px solid var(--accent-3);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.live-text:focus-visible {
+  outline: 3px solid var(--accent-1);
+  outline-offset: 2px;
+}
+
+.live-error {
+  color: #ff8a8a;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.live-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 /* ── What-if panel ──────────────────────────────────────────── */
