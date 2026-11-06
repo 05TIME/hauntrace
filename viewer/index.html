@@ -27,6 +27,9 @@
               aria-label="Open trace JSON file"
             />
           </label>
+          <button id="btn-share-link" class="btn btn-secondary" type="button" disabled>
+            🔗 Copy share link
+          </button>
         </div>
       </div>
     </header>
@@ -183,6 +186,14 @@
             <p class="whatif-empty">Choose a scenario above to see how decisions would change.</p>
           </div>
         </div>
+
+        <!-- Explain this run -->
+        <details id="explain-section" class="explain-section">
+          <summary class="explain-toggle">
+            <span aria-hidden="true">📜</span> Explain this run
+          </summary>
+          <div id="explain-content" class="explain-content" aria-live="polite"></div>
+        </details>
       </section>
     </main>
 

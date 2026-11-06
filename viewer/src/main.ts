@@ -25,8 +25,13 @@ import exampleTraceNpcRaw from "./example-trace-npc.json";
 import type { TraceFile } from "./types.js";
 import { formatAction } from "./formatAction.js";
 import { formatDiffCard } from "./formatDiffCard.js";
-import { tamperTrace, restoreTrace, analyzeTrace, defaultTamperEdit } from "./tamper.js";
+import { encodeTrace, decodeTrace, extractPayload, buildShareUrl, ShareLinkError } from "./shareLink.js";
+import type { Explanation } from "./explainRun.js";
+import { selectStartup } from "./startupSelection.js";
+import { escapeHtml, escapeJson } from "./escapeHtml.js";
+import { tamperTrace, restoreTrace, defaultTamperEdit } from "./tamper.js";
 import { observationToText, runLiveWhatIf, type LiveResult } from "./liveWhatIf.js";
+import { shareableFile, verifyAndExplain } from "./runState.js";
 
 // ── DOM element helpers ──────────────────────────────────────
 function el<T extends HTMLElement>(id: string): T {
@@ -60,7 +65,7 @@ let haunted: Set<number> = new Set();
 function renderBadge(badgeState: BadgeState): void {
   const badge = el("chain-badge");
   badge.className = `meta-hash-badge${badgeState.cssModifier ? ` ${badgeState.cssModifier}` : ""}`;
-  badge.innerHTML = `<span aria-hidden="true">${badgeState.icon}</span><span class="badge-label">${badgeState.label}</span>`;
+  badge.innerHTML = `<span aria-hidden="true">${escapeHtml(badgeState.icon)}</span><span class="badge-label">${escapeHtml(badgeState.label)}</span>`;
 }
 
 // ── Rule colour class ────────────────────────────────────────
@@ -163,6 +168,7 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
   // Show viewer, hide drop zone
   dropZone.hidden = true;
   viewer.hidden = false;
+  el<HTMLButtonElement>("btn-share-link").disabled = false;
 
   renderMeta(trace);
 
@@ -172,6 +178,7 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
   renderTimeline(trace, 0, new Set());
   renderScrubber(trace, 0);
   renderStepDetail(0);
+  renderExplain();
   resetLiveEditor(0);
 
   // If a scenario was preselected, render what-if immediately
@@ -184,7 +191,7 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
   if (!el("tamper-panel").hidden) syncTamperInput();
 
   // Verify chain asynchronously (also flags haunted steps if a loaded file is already broken;
-  // stale results from an earlier load are ignored).
+  // stale results from an earlier load are ignored) and refresh badge + story together.
   await reverifyAndRender();
 }
 
@@ -227,9 +234,9 @@ function renderTimeline(
 
     item.innerHTML = `
       <span class="timeline-step">Step ${i + 1}</span>
-      <span class="timeline-rule ${ruleClass(ghost.ruleId)}">${escHtml(ruleLabel(ghost.ruleId))}</span>
-      <span class="timeline-price">${escHtml(formatAction(ghost.action))}</span>
-      <span class="timeline-date">${escHtml(actionDate(ghost.action))}</span>
+      <span class="timeline-rule ${ruleClass(ghost.ruleId)}">${escapeHtml(ruleLabel(ghost.ruleId))}</span>
+      <span class="timeline-price">${escapeHtml(formatAction(ghost.action))}</span>
+      <span class="timeline-date">${escapeHtml(actionDate(ghost.action))}</span>
       ${hauntMark}
     `;
 
@@ -279,31 +286,31 @@ function renderStepDetail(step: number): void {
   card.innerHTML = `
     ${haunted.has(step) ? `<div class="detail-haunted-note">${state.tamperedStep === step ? "🪦 This step was tampered with." : "👻 Haunted: the chain is broken before this step."}</div>` : ""}
     <div class="detail-header">
-      <span class="detail-rule-badge ${ruleClass(ghost.ruleId)}">${escHtml(ruleLabel(ghost.ruleId))}</span>
-      <span class="detail-time">${escHtml(formatTime(ghost.timeMs))}</span>
+      <span class="detail-rule-badge ${ruleClass(ghost.ruleId)}">${escapeHtml(ruleLabel(ghost.ruleId))}</span>
+      <span class="detail-time">${escapeHtml(formatTime(ghost.timeMs))}</span>
     </div>
-    <div class="detail-reason">"${escHtml(ghost.reason)}"</div>
+    <div class="detail-reason">"${escapeHtml(ghost.reason)}"</div>
     <div class="detail-grids">
       <div class="detail-block">
         <div class="detail-block-title">📋 Observation (obs)</div>
-        <pre>${escHtml(JSON.stringify(ghost.obs, null, 2))}</pre>
+        <pre>${escapeJson(ghost.obs, 2)}</pre>
       </div>
       <div class="detail-block">
         <div class="detail-block-title">⬅️ State Before</div>
-        <pre>${escHtml(JSON.stringify(ghost.stateBefore, null, 2))}</pre>
+        <pre>${escapeJson(ghost.stateBefore, 2)}</pre>
       </div>
       <div class="detail-block">
         <div class="detail-block-title">➡️ State After</div>
-        <pre>${escHtml(JSON.stringify(ghost.stateAfter, null, 2))}</pre>
+        <pre>${escapeJson(ghost.stateAfter, 2)}</pre>
       </div>
     </div>
     <div class="detail-block">
       <div class="detail-block-title">🎯 Action</div>
-      <pre>${escHtml(JSON.stringify(ghost.action, null, 2))}</pre>
+      <pre>${escapeJson(ghost.action, 2)}</pre>
     </div>
     <div class="detail-hash">
-      <span>prevHash:</span> ${escHtml(String(ghost.prevHash))}<br>
-      <span>hash:</span> ${escHtml(String(ghost.hash))}
+      <span>prevHash:</span> ${escapeHtml(ghost.prevHash)}<br>
+      <span>hash:</span> ${escapeHtml(ghost.hash)}
     </div>
   `;
 }
@@ -442,14 +449,8 @@ function diffRowsHtml(trace: Trace, altTrace: Trace, diffs: GhostDiff[]): string
   }).join("");
 }
 
-/** Minimal HTML escaping to prevent XSS from trace content. */
-function escHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+/** HTML escaping for trace content (see escapeHtml.ts). */
+const escHtml = escapeHtml;
 
 // ── Compute changed steps for current scenario ───────────────
 function getChangedSteps(): Set<number> {
@@ -547,6 +548,67 @@ function setStep(step: number): void {
   items[s]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
 }
 
+// ── Explain this run ─────────────────────────────────────────
+/** Render the story for the DISPLAYED trace (tampered or restored). Without a result yet, show a placeholder. */
+function renderExplain(story?: Explanation, ok = true): void {
+  const box = el("explain-content");
+  box.textContent = "";
+  if (!state) return;
+  if (!story) {
+    const p = document.createElement("p");
+    p.textContent = "Verifying chain before explaining…";
+    box.appendChild(p);
+    return;
+  }
+  const add = (text: string, cls?: string): void => {
+    const p = document.createElement("p");
+    if (cls) p.className = cls;
+    p.textContent = text; // textContent: trace content is untrusted
+    box.appendChild(p);
+  };
+  add(story.intro);
+  story.steps.forEach((s) => add(s, "explain-step"));
+  add(story.closing, ok ? "explain-closing" : "explain-closing broken");
+}
+
+// ── Share links ──────────────────────────────────────────────
+function showLoadError(msg: string): void {
+  const errBox = el("drop-error");
+  errBox.textContent = `⚠️ ${msg}`;
+  errBox.hidden = false;
+}
+
+async function loadFromShareHash(hash: string): Promise<void> {
+  const payload = extractPayload(hash);
+  if (payload === null) return;
+  try {
+    const file = await decodeTrace(payload);
+    await loadTrace(JSON.stringify(file));
+  } catch (e) {
+    showLoadError(e instanceof ShareLinkError ? e.message : `Could not load share link: ${String(e)}`);
+  }
+}
+
+async function copyShareLink(): Promise<void> {
+  if (!state) return;
+  // Share exactly the displayed recorded trace (tampered if haunted, restored after
+  // Exorcise). Live what-if edits and scenarios are overlays and are never included.
+  const file = shareableFile(state.trace);
+  const status = el("btn-share-link");
+  const original = "🔗 Copy share link";
+  try {
+    const payload = await encodeTrace(file);
+    const url = buildShareUrl(globalThis.location?.href ?? "", payload);
+    await navigator.clipboard.writeText(url);
+    status.textContent = "✅ Link copied";
+  } catch (e) {
+    status.textContent = e instanceof ShareLinkError ? `⚠️ ${e.message}` : "⚠️ Could not copy link";
+  }
+  setTimeout(() => {
+    status.textContent = original;
+  }, 3000);
+}
+
 // ── Tamper and haunt ─────────────────────────────────────────
 function renderTamperControls(): void {
   const tampered = state?.tamperedStep != null;
@@ -557,16 +619,19 @@ function renderTamperControls(): void {
       : "";
 }
 
-/** Verify the displayed trace and refresh badge, timeline, detail and status. */
+/** Verify the displayed trace and refresh badge, story, timeline, detail and status. */
 async function reverifyAndRender(): Promise<void> {
   if (!state) return;
   const shown = state.trace;
   renderBadge(VERIFYING_BADGE);
-  const analysis = await analyzeTrace(shown);
-  // Ignore stale results if the user tampered/exorcised/loaded again meanwhile.
+  renderExplain();
+  const { analysis, story } = await verifyAndExplain(shown);
+  // Ignore stale results if the user tampered/exorcised/loaded again meanwhile:
+  // a story is only ever rendered with the verification of the SAME trace instance.
   if (!state || state.trace !== shown) return;
   haunted = analysis.hauntedSteps;
   renderBadge(analysis.badge);
+  renderExplain(story, analysis.result.ok);
   renderTamperControls();
   renderWhatIf(); // also re-renders the timeline with haunted markers (and live "changed" marks)
   renderLiveResult();
@@ -622,16 +687,18 @@ function init(): void {
     void exorcise();
   });
 
-  // Read URL params
-  const params = new URLSearchParams(globalThis.location?.search ?? "");
-  const exampleParam = params.get("example");
-  const whatifParam = params.get("whatif") ?? undefined;
-
-  if (exampleParam === "1") {
-    void loadTrace(JSON.stringify(exampleTraceRaw), whatifParam);
-  } else if (exampleParam === "npc") {
-    void loadTrace(JSON.stringify(exampleTraceNpcRaw), whatifParam);
+  // Read URL: a #t= share payload always wins over ?example / ?whatif.
+  const choice = selectStartup(globalThis.location?.search ?? "", globalThis.location?.hash ?? "");
+  if (choice.kind === "share") {
+    void loadFromShareHash(globalThis.location?.hash ?? "");
+  } else if (choice.kind === "example") {
+    const raw = choice.key === "npc" ? exampleTraceNpcRaw : exampleTraceRaw;
+    void loadTrace(JSON.stringify(raw), choice.whatif);
   }
+
+  el("btn-share-link").addEventListener("click", () => {
+    void copyShareLink();
+  });
 
   // Load example trace button
   el("btn-load-example").addEventListener("click", () => {

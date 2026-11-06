@@ -39,6 +39,7 @@ export default defineConfig({
       abs("packages/core/src", "rng.ts"),
       abs("packages/core/src", "clock.ts"),
       abs("packages/core/src", "types.ts"),
+      abs("packages/core/src", "explain.ts"),
 
       // ── apps/haunted-npc ───────────────────────────────────────────────
       abs("apps/haunted-npc/src", "agent.ts"),
