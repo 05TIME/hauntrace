@@ -4,7 +4,6 @@
  */
 import type { Trace } from "./types.js";
 import { parseTraceFile, TraceLoadError } from "./traceLoader.js";
-import { verifyChain } from "./verifyChain.js";
 import {
   createScrubberState,
   goToStep,
@@ -15,7 +14,6 @@ import {
 } from "./scrubberState.js";
 import { computeWhatIfDiffs } from "./whatIfDiff.js";
 import {
-  getBadgeState,
   NO_TRACE_BADGE,
   VERIFYING_BADGE,
   type BadgeState,
@@ -176,10 +174,11 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
     renderWhatIf(); // always render to clear/reset overlay
   }
 
-  // Verify chain asynchronously
-  renderBadge(VERIFYING_BADGE);
-  const result = await verifyChain(trace);
-  renderBadge(getBadgeState(result));
+  if (!el("tamper-panel").hidden) syncTamperInput();
+
+  // Verify chain asynchronously (also flags haunted steps if a loaded file is already broken;
+  // stale results from an earlier load are ignored).
+  await reverifyAndRender();
 }
 
 // ── Render meta bar ──────────────────────────────────────────
@@ -221,9 +220,9 @@ function renderTimeline(
 
     item.innerHTML = `
       <span class="timeline-step">Step ${i + 1}</span>
-      <span class="timeline-rule ${ruleClass(ghost.ruleId)}">${ruleLabel(ghost.ruleId)}</span>
-      <span class="timeline-price">${formatAction(ghost.action)}</span>
-      <span class="timeline-date">${actionDate(ghost.action)}</span>
+      <span class="timeline-rule ${ruleClass(ghost.ruleId)}">${escHtml(ruleLabel(ghost.ruleId))}</span>
+      <span class="timeline-price">${escHtml(formatAction(ghost.action))}</span>
+      <span class="timeline-date">${escHtml(actionDate(ghost.action))}</span>
       ${hauntMark}
     `;
 
@@ -273,31 +272,31 @@ function renderStepDetail(step: number): void {
   card.innerHTML = `
     ${haunted.has(step) ? `<div class="detail-haunted-note">${state.tamperedStep === step ? "🪦 This step was tampered with." : "👻 Haunted: the chain is broken before this step."}</div>` : ""}
     <div class="detail-header">
-      <span class="detail-rule-badge ${ruleClass(ghost.ruleId)}">${ruleLabel(ghost.ruleId)}</span>
-      <span class="detail-time">${formatTime(ghost.timeMs)}</span>
+      <span class="detail-rule-badge ${ruleClass(ghost.ruleId)}">${escHtml(ruleLabel(ghost.ruleId))}</span>
+      <span class="detail-time">${escHtml(formatTime(ghost.timeMs))}</span>
     </div>
     <div class="detail-reason">"${escHtml(ghost.reason)}"</div>
     <div class="detail-grids">
       <div class="detail-block">
         <div class="detail-block-title">📋 Observation (obs)</div>
-        <pre>${JSON.stringify(ghost.obs, null, 2)}</pre>
+        <pre>${escHtml(JSON.stringify(ghost.obs, null, 2))}</pre>
       </div>
       <div class="detail-block">
         <div class="detail-block-title">⬅️ State Before</div>
-        <pre>${JSON.stringify(ghost.stateBefore, null, 2)}</pre>
+        <pre>${escHtml(JSON.stringify(ghost.stateBefore, null, 2))}</pre>
       </div>
       <div class="detail-block">
         <div class="detail-block-title">➡️ State After</div>
-        <pre>${JSON.stringify(ghost.stateAfter, null, 2)}</pre>
+        <pre>${escHtml(JSON.stringify(ghost.stateAfter, null, 2))}</pre>
       </div>
     </div>
     <div class="detail-block">
       <div class="detail-block-title">🎯 Action</div>
-      <pre>${JSON.stringify(ghost.action, null, 2)}</pre>
+      <pre>${escHtml(JSON.stringify(ghost.action, null, 2))}</pre>
     </div>
     <div class="detail-hash">
-      <span>prevHash:</span> ${ghost.prevHash}<br>
-      <span>hash:</span> ${ghost.hash}
+      <span>prevHash:</span> ${escHtml(String(ghost.prevHash))}<br>
+      <span>hash:</span> ${escHtml(String(ghost.hash))}
     </div>
   `;
 }

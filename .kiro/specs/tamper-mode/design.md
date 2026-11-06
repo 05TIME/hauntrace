@@ -11,8 +11,9 @@
 - `viewer/index.html`: `.tamper-section` with `#btn-tamper` (toggle, `aria-expanded`), `#tamper-panel` (`#tamper-reason`, `#btn-tamper-apply`), `#btn-exorcise` (hidden until tampered), `#tamper-status` (`role=status`).
 - `viewer/src/main.ts`: `AppState` gains `original` and `tamperedStep`; module-level `haunted` set. `renderTimeline` adds `.haunted` / `.tampered` classes, an aria-label suffix and a visible `🪦 tampered` / `👻 haunted` marker. `applyTamper` always tampers from `state.original`; `exorcise` restores it; both call `reverifyAndRender`, which ignores stale async results. Step-detail reason is now `escHtml`-escaped. The global arrow-key handler ignores input/select targets (except the scrubber).
 - `viewer/src/style.css`: `.timeline-item.haunted` (red dotted border, strike-through action, flicker animation disabled under `prefers-reduced-motion`), `.tampered` (solid), tamper panel styles.
-- `.kiro/hooks/sample-traces-replay.kiro.hook`: same JSON shape as `determinism-tests.kiro.hook`; `fileEdited` on `apps/**/*.ts`, `packages/core/**/*.ts`; `askAgent` to regenerate `viewer/src/example-trace*.json` and confirm verify + replay.
-- `apps/haunted-npc/test/example-trace.test.ts`, `apps/shortlet-pricing/test/example-trace.test.ts`: read the bundled JSON, assert core `verifyChain` ok and `replay(agent, trace)` ok (also that the NPC viewer copy equals the app copy). One file per app so apps never import each other.
+- `.kiro/hooks/sample-traces-replay.kiro.hook`: same JSON shape as `determinism-tests.kiro.hook` (same name/description/version/when/then keys and the same `fileEdited` patterns); `askAgent` runs `npm run regen:traces` then `npm test`.
+- `apps/*/src/example-trace.ts` (pure builders + run options, shared with the CLIs) and `apps/*/src/generate-trace.ts` (write the JSON from the repo root; cwd-based, they refuse to run elsewhere). Root script `regen:traces` = build + both generators. The NPC generator writes both the app copy and the viewer copy.
+- `apps/haunted-npc/test/example-trace.test.ts`, `apps/shortlet-pricing/test/example-trace.test.ts`: read the bundled JSON, assert core `verifyChain` ok, `replay(agent, trace)` ok, bundled == freshly generated, generation deterministic. One file per app so apps never import each other.
 
 ## Index convention
 

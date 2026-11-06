@@ -1,8 +1,9 @@
 import { replay, run, whatIf } from "../../../packages/core/src/index.js";
 import { hauntedNpcAgent } from "./agent.js";
 import { encounterScript } from "./script.js";
+import { npcExampleOptions } from "./example-trace.js";
 
-const opts = { seed: 13, startMs: Date.UTC(2026, 9, 31), stepMs: 60_000 };
+const opts = { ...npcExampleOptions };
 const trace = run(hauntedNpcAgent, encounterScript, opts);
 
 console.log("=== Haunted Inn NPC — EXAMPLE trace ===\n");

@@ -48,4 +48,13 @@ Kiroween 2026 requires a write-up of Kiro usage. This file is updated as the bui
 
 ## Tamper and haunt mode + second hook (feat/tamper-mode)
 - One Kiro CLI session (non-interactive, file tools only) wrote `.kiro/specs/tamper-mode/`, implemented `viewer/src/tamper.ts` (alter one step without re-hashing, re-verify, flag every step from the break onward, restore) with `viewer/test/tamper.test.ts`, added the Tamper / "Haunt selected step" / Exorcise controls and haunted timeline styling, escaped step-detail reasons in `main.ts`, and created the second hook `.kiro/hooks/sample-traces-replay.kiro.hook` plus tests that both bundled example traces still verify and replay.
-- All tests passed first time. Hand edits: this entry and the README line. Tests and builds were run outside Kiro.
+- Review session (Kiro CLI, file read/write tools only: no shell, so nothing was executed, and `npm test` and the viewer/root builds were left for the user to run outside Kiro). Changes:
+  - Real bug fixed: `apps/haunted-npc/src/generate-trace.ts` wrote its output next to the compiled script (under `dist/`), so the old hook instruction ("copy apps/haunted-npc/src/example-trace-npc.json") could copy a stale file. Generators now write to the real source paths from the repo root.
+  - Real bug fixed: a loaded trace that was already broken got a "Chain broken" badge but no haunted marks; `loadTrace` now goes through the same `reverifyAndRender` path (with stale-result protection) as Tamper/Exorcise.
+  - Hardening: the step-detail JSON blocks, hashes, rule label, and timeline action/date/rule text are now HTML-escaped (previously only the reason was).
+  - New deterministic script `npm run regen:traces` (build, then `apps/*/src/generate-trace.ts` via pure `example-trace.ts` builders). The shortlet trace no longer has to be reconstructed by an agent by hand. The hook now just runs this script, then `npm test`.
+  - New tests: each bundled trace must equal what the generator would produce (staleness check), and generation is byte-deterministic.
+- Hand edits: this entry and the README lines. Whether the new/changed code compiles and passes was NOT verified inside Kiro (no shell available).
+
+### Coordinator verification
+- After the Kiro file-only sessions, the coordinating assistant ran `npm test` (148 core/app + 177 viewer = 325 tests, all passing), `npm run typecheck`, `npm run build`, and `npm --prefix viewer run build` successfully. `npm run regen:traces` also completed successfully; both regenerated samples verified and replayed.

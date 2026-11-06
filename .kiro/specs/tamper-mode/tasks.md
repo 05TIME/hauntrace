@@ -8,3 +8,5 @@
 - [x] 6. Hook — `.kiro/hooks/sample-traces-replay.kiro.hook` in the same format as `determinism-tests.kiro.hook` (req 12)
 - [x] 7. Bundled-trace tests — `apps/haunted-npc/test/example-trace.test.ts` and `apps/shortlet-pricing/test/example-trace.test.ts`: `verifyChain` + `replay` on both bundled traces (req 12)
 - [x] 8. Spec — requirements, design, tasks in `.kiro/specs/tamper-mode/`
+
+- [x] 9. Review fixes — deterministic `npm run regen:traces` (builders + generators), generator output paths fixed, hook updated, staleness/determinism tests, loaded-broken traces flagged, wider HTML escaping (req 9, 12, 13). Not executed inside Kiro (no shell): run `npm test`, `npm run viewer:build` and `npm run build` to confirm.

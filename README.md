@@ -49,3 +49,4 @@ A ghost innkeeper whose dialogue and mood/trust decisions run through the same H
 - `npm run demo:npc` prints the encounter, head hash, replay check and the lantern what-if.
 - Open the Séance viewer with `?example=npc` to inspect the bundled NPC trace (`?example=1` loads the short-let trace).
 - Press **Tamper** in the viewer to alter one recorded step without re-hashing and watch the chain break spread from that step; **Exorcise** restores the original.
+- `npm run regen:traces` rebuilds both bundled example traces deterministically (the `sample-traces-replay` Kiro hook runs it when core/app `.ts` files change); tests fail if a bundled trace is stale.

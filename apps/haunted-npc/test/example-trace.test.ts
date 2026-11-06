@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { replay, verifyChain, type Trace } from "../../../packages/core/src/index.js";
 import { hauntedNpcAgent, type EncounterObs, type NpcAction, type NpcState } from "../src/agent.js";
+import { buildNpcExampleFile } from "../src/example-trace.js";
 
 type NpcTrace = Trace<NpcState, EncounterObs, NpcAction>;
 
@@ -13,8 +14,7 @@ function load(rel: string): NpcTrace {
   return file.trace;
 }
 
-// If these fail, regenerate: `node dist/apps/haunted-npc/src/generate-trace.js` (after `npm run build`),
-// then copy apps/haunted-npc/src/example-trace-npc.json to viewer/src/example-trace-npc.json.
+// If these fail, run `npm run regen:traces` (rebuilds both bundled traces deterministically).
 describe("bundled NPC example traces", () => {
   for (const [label, rel] of [
     ["apps/haunted-npc/src/example-trace-npc.json", "../src/example-trace-npc.json"],
@@ -30,5 +30,16 @@ describe("bundled NPC example traces", () => {
 
   it("viewer copy matches the app copy", () => {
     expect(load("../../../viewer/src/example-trace-npc.json")).toEqual(load("../src/example-trace-npc.json"));
+  });
+
+  it("both bundled copies equal what `npm run regen:traces` would generate", () => {
+    // If this fails the bundled files are stale: run `npm run regen:traces`.
+    const fresh = JSON.parse(JSON.stringify(buildNpcExampleFile())).trace;
+    expect(load("../src/example-trace-npc.json")).toEqual(fresh);
+    expect(load("../../../viewer/src/example-trace-npc.json")).toEqual(fresh);
+  });
+
+  it("generation is deterministic (byte-identical JSON on repeat)", () => {
+    expect(JSON.stringify(buildNpcExampleFile())).toBe(JSON.stringify(buildNpcExampleFile()));
   });
 });
