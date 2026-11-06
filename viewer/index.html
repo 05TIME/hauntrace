@@ -114,6 +114,29 @@
           </div>
         </div>
 
+        <!-- Live what-if editor -->
+        <div class="live-section">
+          <h2 class="section-title">
+            <span aria-hidden="true">🕯️</span> Haunt this step
+          </h2>
+          <label class="whatif-label" for="live-text">
+            Edit the observation of the selected step (JSON):
+          </label>
+          <textarea
+            id="live-text"
+            class="live-text"
+            rows="10"
+            spellcheck="false"
+            aria-describedby="live-error"
+          ></textarea>
+          <div id="live-error" class="live-error" role="alert" hidden></div>
+          <div class="live-actions">
+            <button id="live-haunt" class="btn btn-primary" type="button">Haunt this step</button>
+            <button id="live-reset" class="btn btn-secondary" type="button">Reset</button>
+          </div>
+          <div id="live-result" class="whatif-overlay" aria-live="polite"></div>
+        </div>
+
         <!-- What-if panel -->
         <div class="whatif-section">
           <h2 class="section-title">

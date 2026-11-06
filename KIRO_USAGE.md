@@ -45,3 +45,8 @@ Kiroween 2026 requires a write-up of Kiro usage. This file is updated as the bui
 - Hand edits: none to the code. Only this file was updated by hand. Screenshots were taken with a headless Chrome script outside Kiro.
 
 - **Viewer badge step number (fix/viewer-broken-step-number):** Kiro CLI made the whole code change: `getBadgeState` now shows `brokenAt + 1` so the "Chain broken at step N" badge matches the 1-based timeline (core `verifyChain` stays 0-based), updated two unit tests that encoded the old numbering, and added `viewer/test/chainBreakBadge.test.ts` (tampered NPC trace regression). No throttles. Hand edits: this KIRO_USAGE.md entry only.
+
+## Live what-if editor (feat/live-whatif-editor)
+- Session 1 (Kiro CLI, non-interactive, file tools only): wrote `.kiro/specs/live-whatif-editor/` (requirements, design, 6 tasks), then implemented `viewer/src/liveWhatIf.ts` (parse/validate an edited observation, re-run the agent in the browser, diff from the edited step on), the "Haunt this step" panel with Reset and timeline highlights in `main.ts`/`index.html`/`style.css`, and `viewer/test/liveWhatIf.test.ts` (seeded random edits, zero-diff on unedited input, invalid input rejected).
+- Session 2 (Kiro): one seeded test failed; Kiro diagnosed that the test deleted an optional field the strict validator treats as required, and fixed the test.
+- Hand edits: this entry and the README line. Tests and builds were run outside Kiro (Kiro had no shell access).

@@ -2,7 +2,7 @@
  * Séance – Hauntrace Trace Viewer
  * Main entry point: wires up file loading, UI rendering, and interactions.
  */
-import type { Trace } from "./types.js";
+import type { Trace, GhostDiff } from "./types.js";
 import { parseTraceFile, TraceLoadError } from "./traceLoader.js";
 import { verifyChain } from "./verifyChain.js";
 import {
@@ -27,6 +27,7 @@ import exampleTraceNpcRaw from "./example-trace-npc.json";
 import type { TraceFile } from "./types.js";
 import { formatAction } from "./formatAction.js";
 import { formatDiffCard } from "./formatDiffCard.js";
+import { observationToText, runLiveWhatIf, type LiveResult } from "./liveWhatIf.js";
 
 // ── DOM element helpers ──────────────────────────────────────
 function el<T extends HTMLElement>(id: string): T {
@@ -40,9 +41,13 @@ interface AppState {
   trace: Trace;
   scrubber: ReturnType<typeof createScrubberState>;
   whatIfScenario: string;
+  /** Active live what-if edit (successful result only), or null. */
+  live: { step: number; result: Extract<LiveResult, { ok: true }> } | null;
 }
 
 let state: AppState | null = null;
+/** Step whose observation is currently loaded in the live editor. */
+let editorStep = -1;
 
 // ── Badge rendering ──────────────────────────────────────────
 function renderBadge(badgeState: BadgeState): void {
@@ -141,6 +146,7 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
     trace,
     scrubber: createScrubberState(trace),
     whatIfScenario: "none",
+    live: null,
   };
 
   // Show viewer, hide drop zone
@@ -155,6 +161,7 @@ async function loadTrace(json: string, preselectScenario?: string): Promise<void
   renderTimeline(trace, 0, new Set());
   renderScrubber(trace, 0);
   renderStepDetail(0);
+  resetLiveEditor(0);
 
   // If a scenario was preselected, render what-if immediately
   if (state.whatIfScenario !== "none") {
@@ -338,12 +345,26 @@ function renderWhatIf(): void {
     return;
   }
 
-  const diffRows = diffs.map((diff) => {
-    const origGhost = state!.trace.ghosts[diff.step];
+  const diffRows = diffRowsHtml(state.trace, altTrace, diffs);
+
+  overlay.innerHTML = `
+    <div class="whatif-summary">
+      🔮 <strong>${changedSteps.size}</strong> decision(s) would change.
+    </div>
+    <div class="whatif-diffs">${diffRows}</div>
+  `;
+
+  renderTimeline(state.trace, state.scrubber.currentStep, changedSteps);
+}
+
+/** Diff-card rows shared by scenario what-if and live what-if. */
+function diffRowsHtml(trace: Trace, altTrace: Trace, diffs: GhostDiff[]): string {
+  return diffs.map((diff) => {
+    const origGhost = trace.ghosts[diff.step];
     const altGhost = altTrace.ghosts[diff.step];
     if (!origGhost || !altGhost) return "";
 
-    const card = formatDiffCard(state!.trace.agent, diff, origGhost, altGhost);
+    const card = formatDiffCard(trace.agent, diff, origGhost, altGhost);
 
     const fieldRows = card.fields
       .map((f) => {
@@ -390,16 +411,7 @@ function renderWhatIf(): void {
           </div>
         </details>
       </div>`;
-  });
-
-  overlay.innerHTML = `
-    <div class="whatif-summary">
-      🔮 <strong>${changedSteps.size}</strong> decision(s) would change.
-    </div>
-    <div class="whatif-diffs">${diffRows.join("")}</div>
-  `;
-
-  renderTimeline(state.trace, state.scrubber.currentStep, changedSteps);
+  }).join("");
 }
 
 /** Minimal HTML escaping to prevent XSS from trace content. */
@@ -413,10 +425,80 @@ function escHtml(s: string): string {
 
 // ── Compute changed steps for current scenario ───────────────
 function getChangedSteps(): Set<number> {
-  if (!state || state.whatIfScenario === "none") return new Set();
+  if (!state) return new Set();
+  if (state.live) return state.live.result.changedSteps;
+  if (state.whatIfScenario === "none") return new Set();
   const altTrace = buildAltTrace(state);
   const { changedSteps } = computeWhatIfDiffs(state.trace, altTrace);
   return changedSteps;
+}
+
+// ── Live what-if editor (Feature A) ───────────────────────────
+function resetLiveEditor(step: number): void {
+  if (!state) return;
+  editorStep = step;
+  state.live = null;
+  const textarea = el<HTMLTextAreaElement>("live-text");
+  const ghost = state.trace.ghosts[step];
+  textarea.value = ghost ? observationToText(ghost.obs) : "";
+  const errBox = el("live-error");
+  errBox.hidden = true;
+  errBox.textContent = "";
+  renderLiveResult();
+}
+
+function renderLiveResult(): void {
+  if (!state) return;
+  const box = el("live-result");
+  if (!state.live) {
+    box.innerHTML = "";
+    return;
+  }
+  const { result } = state.live;
+  if (result.diffs.length === 0) {
+    box.innerHTML =
+      '<div class="whatif-no-change">✨ No decisions changed from this edit.</div>';
+    return;
+  }
+  const rows = diffRowsHtml(state.trace, result.altTrace, result.diffs);
+  box.innerHTML = `
+    <div class="whatif-summary">
+      🔮 <strong>${result.changedSteps.size}</strong> decision(s) would change.
+    </div>
+    <div class="whatif-diffs">${rows}</div>
+  `;
+}
+
+function hauntThisStep(): void {
+  if (!state) return;
+  const step = state.scrubber.currentStep;
+  const text = el<HTMLTextAreaElement>("live-text").value;
+  const errBox = el("live-error");
+
+  const outcome = runLiveWhatIf(state.trace, step, text);
+  if (!outcome.ok) {
+    errBox.textContent = `⚠️ ${outcome.error}`;
+    errBox.hidden = false;
+    return;
+  }
+  errBox.hidden = true;
+  errBox.textContent = "";
+
+  // Mutual exclusion: a live edit clears any built-in scenario selection.
+  state.whatIfScenario = "none";
+  const select = el<HTMLSelectElement>("whatif-select");
+  if (!select.hidden) select.value = "none";
+  renderWhatIf();
+
+  state.live = { step, result: outcome };
+  renderLiveResult();
+  renderTimeline(state.trace, state.scrubber.currentStep, getChangedSteps());
+}
+
+function resetHaunt(): void {
+  if (!state) return;
+  resetLiveEditor(state.scrubber.currentStep);
+  renderTimeline(state.trace, state.scrubber.currentStep, getChangedSteps());
 }
 
 // ── Step navigation ──────────────────────────────────────────
@@ -426,6 +508,10 @@ function setStep(step: number): void {
   const s = state.scrubber.currentStep;
   renderScrubber(state.trace, s);
   renderStepDetail(s);
+  if (editorStep !== s) {
+    // Selecting a different step discards any live edit and reloads the editor.
+    resetLiveEditor(s);
+  }
   const changedSteps = getChangedSteps();
   renderTimeline(state.trace, s, changedSteps);
   const items = document.querySelectorAll(".timeline-item");
@@ -529,8 +615,13 @@ function init(): void {
   el<HTMLSelectElement>("whatif-select").addEventListener("change", (e) => {
     if (!state) return;
     state.whatIfScenario = (e.target as HTMLSelectElement).value;
+    // Mutual exclusion: choosing a scenario clears any live edit.
+    resetLiveEditor(state.scrubber.currentStep);
     renderWhatIf();
   });
+
+  el("live-haunt").addEventListener("click", hauntThisStep);
+  el("live-reset").addEventListener("click", resetHaunt);
 }
 
 init();
