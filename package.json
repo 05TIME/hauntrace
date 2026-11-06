@@ -11,6 +11,7 @@
     "demo:shortlet": "npm run build && node dist/apps/shortlet-pricing/src/cli.js",
     "demo:npc": "npm run build && node dist/apps/haunted-npc/src/cli.js",
     "explain": "npm run build --silent && node dist/packages/core/src/explain-cli.js",
+    "regen:traces": "npm run build && node dist/apps/shortlet-pricing/src/generate-trace.js && node dist/apps/haunted-npc/src/generate-trace.js",
     "viewer:dev": "npm --prefix viewer run dev",
     "viewer:build": "npm --prefix viewer install && npm --prefix viewer run build"
   },

@@ -30,12 +30,20 @@ Encode order: `JSON.stringify` → UTF-8 → reject if over `MAX_DECODED_BYTES` 
 
 ```
 init(): selectStartup(search, hash)   (viewer/src/startupSelection.ts, pure)
-        #t=… present (even empty/malformed) → decodeTrace → loadTrace(JSON) → verifyChain → badge + explain panel
+        #t=… present (even empty/malformed) → decodeTrace → loadTrace(JSON) → reverifyAndRender → badge + haunted marks + explain panel
                                               (error → message in #drop-error; never a sample)
         else ?example=1|npc[&whatif=…]       → load bundled trace
         else                                 → nothing (drop zone)
-button  "Copy share link" → encodeTrace(state.traceFile) → buildShareUrl(location.href) → clipboard
+button  "Copy share link" → encodeTrace(shareableFile(state.trace)) → buildShareUrl(location.href) → clipboard
 ```
+
+## Composition with tamper and live what-if (merge integration)
+
+`state.trace` is the single source of truth for what is displayed, verified, explained and shared. `viewer/src/runState.ts` holds two pure helpers used by `main.ts`: `shareableFile(trace)` (a copy wrapped as a schemaVersion 1 file) and `verifyAndExplain(trace)` (tamper's `analyzeTrace` plus `explainRun` on that same result).
+
+- Tamper sets `state.trace` to a tampered copy of `state.original`; Exorcise sets it to a copy of `state.original`. Both call `reverifyAndRender`, which refreshes badge, haunted marks and the story, and drops results whose trace instance is no longer current.
+- Sharing reads `state.trace` at click time, so it carries the tampered or restored run exactly. `state.original` is the file as loaded: an already-broken file is restored as loaded.
+- Live edits (`state.live`) and scenarios are overlays derived from `state.trace`; they are not part of it and never reach `shareableFile` or `explainRun`.
 
 ## Explanation shape
 

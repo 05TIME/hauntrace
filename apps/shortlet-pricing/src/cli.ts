@@ -1,8 +1,9 @@
 import { replay, run, whatIf } from "../../../packages/core/src/index.js";
 import { shortletPricingAgent } from "./agent.js";
 import { sampleNights } from "./sample.js";
+import { shortletExampleOptions } from "./example-trace.js";
 
-const opts = { seed: 31, startMs: Date.UTC(2026, 10, 30), stepMs: 60_000 };
+const opts = { ...shortletExampleOptions };
 const trace = run(shortletPricingAgent, sampleNights, opts);
 console.log("Ghosts (EXAMPLE data):");
 for (const g of trace.ghosts) console.log(`  ${g.action.date}  ${g.action.price}  [${g.ruleId}] ${g.reason}`);

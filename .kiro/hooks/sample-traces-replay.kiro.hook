@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "name": "Regenerate sample traces on save",
+  "description": "When core or app source changes, rebuild both bundled example traces with the deterministic generator and confirm they still verify and replay.",
+  "version": "1",
+  "when": { "type": "fileEdited", "patterns": ["packages/**/*.ts", "apps/**/*.ts"] },
+  "then": { "type": "askAgent", "prompt": "Run `npm run regen:traces` (builds, then rewrites viewer/src/example-trace.json for shortlet-pricing and apps/haunted-npc/src/example-trace-npc.json plus its viewer copy viewer/src/example-trace-npc.json; do not hand-edit these files). Then run `npm test` and confirm both bundled traces still pass verifyChain and replay (the example-trace tests under apps/*/test). If a trace changed only because a rule or the engine changed on purpose, say so; if replay diverges unexpectedly, explain which determinism rule from .kiro/steering/tech.md was broken." }
+}
