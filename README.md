@@ -11,6 +11,10 @@ decisions change.
 Built for the Kiroween 2026 hackathon (Skeleton Crew category) using Kiro.
 See `.kiro/` for specs, steering and hooks.
 
+- **Live demo:** [hauntrace-seance.vercel.app](https://hauntrace-seance.vercel.app) (public Séance viewer)
+- **Demo video:** [youtu.be/AeeG06INnR0](https://youtu.be/AeeG06INnR0)
+- **Devpost:** [devpost.com/software/hauntrace](https://devpost.com/software/hauntrace)
+
 License: MIT
 
 ## Quickstart
